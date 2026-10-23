@@ -125,9 +125,14 @@
 
   /* Hero: featured title */
   .hero {
-    position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: flex-end; gap: 16px;
+    position: relative; isolation: isolate; overflow: hidden;
+    display: grid; grid-template-columns: 100px minmax(0, 1fr); grid-template-areas: "art copy" "actions actions";
+    align-items: end; column-gap: 16px; row-gap: 14px;
     margin: 0 calc(-1 * var(--gutter)); padding: 28px var(--gutter) 20px; min-height: 250px;
   }
+  .hero-art { grid-area: art; }
+  .hero-copy { grid-area: copy; }
+  .hero-actions { grid-area: actions; }
   .hero-bg { position: absolute; inset: -40px; z-index: -2; background-size: cover; background-position: center 30%; filter: blur(30px) saturate(1.4); opacity: .6; }
   .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, var(--bg) 2%, transparent 70%), linear-gradient(to right, var(--bg) 0%, transparent 65%); opacity: .9; }
   .hero-art { flex: none; width: 100px; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; position: relative; box-shadow: 0 14px 34px rgba(0,0,0,.5); }
@@ -137,15 +142,21 @@
   .hero h2 { margin: 4px 0 6px; font-size: clamp(24px, 6.4vw, 46px); line-height: 1.04; font-weight: 900; letter-spacing: -.025em; overflow-wrap: anywhere; }
   .hero .hm { font-size: 13px; color: var(--muted); }
   .hero .badges { margin-top: 8px; align-items: center; }
-  .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  /* Phones: a tidy 2×2 grid under the poster. Wider screens: one row beside the poster. */
+  .hero-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hero-actions .btn { justify-content: center; }
   .btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; }
   @media (min-width: 768px) { .btn { padding: 10px 18px; font-size: 14px; } }
   .btn.primary { background: var(--text); color: var(--bg); }
   .btn.ghost { background: rgba(128, 128, 128, .28); color: var(--text); }
   .btn:hover { filter: brightness(1.1); }
   @media (min-width: 768px) {
-    .hero { min-height: 340px; gap: 28px; padding-top: 40px; padding-bottom: 28px; }
+    .hero {
+      min-height: 340px; column-gap: 28px; padding-top: 40px; padding-bottom: 28px;
+      grid-template-columns: 176px minmax(0, 1fr); grid-template-areas: "art copy" "art actions";
+    }
     .hero-art { width: 176px; }
+    .hero-actions { display: flex; flex-wrap: wrap; align-self: start; }
     .hero .hm { font-size: 14px; }
   }
   .empty { color: var(--muted); font-size: 14px; padding: 10px 0; }
@@ -183,8 +194,22 @@
     background: #ffb547; color: #1a1204; box-shadow: 0 2px 6px rgba(0,0,0,.45);
   }
   .art .mark ~ .ribbon { top: 33px; }
-  .interest[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-  .detail-actions { display: flex; gap: 8px; }
+  .toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .toggle[data-toggle="watched"][aria-pressed="true"] { background: var(--ok-bg); color: var(--ok); }
+  .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Watched: collapsed section at the bottom */
+  .watched-box { margin-top: 34px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .watched-box > summary {
+    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 8px;
+    font-size: 17px; font-weight: 700; color: var(--muted);
+  }
+  .watched-box > summary::-webkit-details-marker { display: none; }
+  .watched-box > summary::before { content: "▸"; font-size: 13px; transition: transform .15s; }
+  .watched-box[open] > summary::before { transform: rotate(90deg); }
+  .watched-box > summary .count { color: var(--faint); font-size: 13px; font-weight: 600; }
+  .watched-box .rail { margin-top: 10px; }
+  .watched-box .art { filter: grayscale(.6); opacity: .8; }
   .art .status {
     position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px); padding: 3px 7px; border-radius: 6px;
     background: rgba(0,0,0,.72); backdrop-filter: blur(4px); font-size: 11px; font-weight: 700;
@@ -447,28 +472,40 @@
   }
 
   // ---------- state ----------
-  var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [] };
+  var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [], watchedOpen: false };
 
-  // ---------- interested (saved in this browser only) ----------
-  // Stored as "m:<title>" / "s:<title>" keys, in the order they were added.
-  var INTEREST_KEY = "tmh-interested";
-  var interested = {};
-  try {
-    (JSON.parse(localStorage.getItem(INTEREST_KEY)) || []).forEach(function (k) {
-      if (typeof k === "string" && /^[ms]:/.test(k)) interested[k] = true;
-    });
-  } catch (e) {}
-  function ikey(kind, m) { return kind + ":" + m.title; }
-  function isInterested(kind, m) { return !!interested[ikey(kind, m)]; }
-  function toggleInterested(kind, m) {
-    var k = ikey(kind, m);
-    if (interested[k]) delete interested[k]; else interested[k] = true;
-    try { localStorage.setItem(INTEREST_KEY, JSON.stringify(Object.keys(interested))); } catch (e) {}
+  // ---------- saved picks (this browser only) ----------
+  // Each list is stored as "m:<title>" / "s:<title>" keys, in the order they were added.
+  function savedSet(storageKey) {
+    var set = {};
+    try {
+      (JSON.parse(localStorage.getItem(storageKey)) || []).forEach(function (k) {
+        if (typeof k === "string" && /^[ms]:/.test(k)) set[k] = true;
+      });
+    } catch (e) {}
+    return {
+      has: function (kind, m) { return !!set[kind + ":" + m.title]; },
+      toggle: function (kind, m) {
+        var k = kind + ":" + m.title;
+        if (set[k]) delete set[k]; else set[k] = true;
+        try { localStorage.setItem(storageKey, JSON.stringify(Object.keys(set))); } catch (e) {}
+      },
+      keys: function () { return Object.keys(set); }
+    };
   }
-  function interestBtn(kind, i, m, cls) {
-    var on = isInterested(kind, m);
-    return '<button class="btn ' + cls + ' interest" type="button" data-kind="' + kind + '" data-i="' + i +
-      '" aria-pressed="' + on + '">' + (on ? "✓ Interested" : "＋ Interested") + "</button>";
+  var interested = savedSet("tmh-interested"), watched = savedSet("tmh-watched");
+  var TOGGLES = {
+    interest: { set: interested, on: "✓ Interested", off: "＋ Interested" },
+    watched: { set: watched, on: "✓ Watched", off: "Mark watched" }
+  };
+  function toggleBtn(name, kind, i, m, cls) {
+    var t = TOGGLES[name], on = t.set.has(kind, m);
+    return '<button class="btn ' + cls + ' toggle" type="button" data-toggle="' + name + '" data-kind="' + kind +
+      '" data-i="' + i + '" aria-pressed="' + on + '">' + (on ? t.on : t.off) + "</button>";
+  }
+  function detailActions(x) {
+    return '<div class="detail-actions">' + toggleBtn("interest", x.kind, x.i, x.m, "ghost") +
+      toggleBtn("watched", x.kind, x.i, x.m, "ghost") + "</div>";
   }
   var DATA = null;
 
@@ -560,7 +597,7 @@
         '<div class="sub">' + esc([m.year, m.genre].filter(Boolean).join(" · ")) + "</div>" +
       "</div>" +
       '<div class="body">' +
-        (x.kind ? '<div class="detail-actions">' + interestBtn(x.kind, x.i, m, "ghost") + "</div>" : "") +
+        (x.kind ? detailActions(x) : "") +
         '<div class="badges">' + b.join("") + "</div>" +
         '<div class="facts">' + facts.join("") + "</div>" +
         '<div class="timeline" aria-label="Release timeline">' +
@@ -601,7 +638,7 @@
         '<div class="sub">' + esc(sub) + "</div>" +
       "</div>" +
       '<div class="body">' +
-        (x.kind ? '<div class="detail-actions">' + interestBtn(x.kind, x.i, s, "ghost") + "</div>" : "") +
+        (x.kind ? detailActions(x) : "") +
         '<div class="badges">' + b.join("") + "</div>" +
         (facts.length ? '<div class="facts">' + facts.join("") + "</div>" : "") +
         (s.notes ? '<p class="notes">' + esc(s.notes) + "</p>" : "") +
@@ -623,7 +660,7 @@
   }
 
   function tile(kind, x) {
-    var m = x.m, st = tileStatus(kind, x), cr = kind === "s" ? m.chartRank : null, on = isInterested(kind, m);
+    var m = x.m, st = tileStatus(kind, x), cr = kind === "s" ? m.chartRank : null, on = interested.has(kind, m);
     var img = posterUrl(m) ?
       '<img src="' + esc(m.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "";
     var meta = kind === "m" ?
@@ -645,7 +682,7 @@
 
   // key identifies the row so its sideways scroll position survives re-renders.
   function rail(title, items, kind, key) {
-    return '<section class="rail"><h3>' + esc(title) + '<span class="count">' + items.length + "</span></h3>" +
+    return '<section class="rail">' + (title ? "<h3>" + esc(title) + '<span class="count">' + items.length + "</span></h3>" : "") +
       (items.length ?
         '<div class="rail-body">' +
           '<button class="arrow prev" type="button" aria-label="Scroll left" tabindex="-1">‹</button>' +
@@ -679,11 +716,12 @@
         "<h2>" + esc(m.title) + "</h2>" +
         '<div class="hm">' + esc(meta.filter(Boolean).join(" · ")) + "</div>" +
         '<div class="badges">' + badge(st.label, st.cls) + asOf + "</div>" +
-        '<div class="hero-actions">' +
-          '<button class="btn primary hero-more" type="button" data-kind="' + kind + '" data-i="' + x.i + '">Details</button>' +
-          interestBtn(kind, x.i, m, "ghost") +
-          '<a class="btn ghost" href="' + JUSTWATCH + encodeURIComponent(m.title) + '" target="_blank" rel="noopener">Where to watch ↗</a>' +
-        "</div>" +
+      "</div>" +
+      '<div class="hero-actions">' +
+        '<button class="btn primary hero-more" type="button" data-kind="' + kind + '" data-i="' + x.i + '">Details</button>' +
+        '<a class="btn ghost" href="' + JUSTWATCH + encodeURIComponent(m.title) + '" target="_blank" rel="noopener">Where to watch ↗</a>' +
+        toggleBtn("interest", kind, x.i, m, "ghost") +
+        toggleBtn("watched", kind, x.i, m, "ghost") +
       "</div></section>";
   }
 
@@ -707,7 +745,7 @@
     var html = "", mNow = [], sNow = [];
     if (state.tab !== "shows") {
       var movies = DATA.movies.map(function (m, i) { return { m: m, i: i, info: movieInfo(m) }; }).filter(function (x) {
-        if (!matchesQuery(x.m.title)) return false;
+        if (watched.has("m", x.m) || !matchesQuery(x.m.title)) return false;
         if (state.service && x.info.services.indexOf(state.service) === -1) return false;
         if (state.movieAvail.length && !state.movieAvail.some(function (k) { return x.info.avail[k]; })) return false;
         return true;
@@ -719,7 +757,7 @@
     }
     if (state.tab !== "movies") {
       var shows = DATA.shows.map(function (s, i) { return { m: s, i: i, info: showInfo(s) }; }).filter(function (x) {
-        if (!matchesQuery(x.m.title)) return false;
+        if (watched.has("s", x.m) || !matchesQuery(x.m.title)) return false;
         if (state.service && x.m.service !== state.service) return false;
         if (state.showAvail.length && state.showAvail.indexOf(x.info.status.group) === -1) return false;
         return true;
@@ -729,20 +767,17 @@
         rail("Coming soon", sortShows(shows.filter(function (x) { return !x.info.watchNow; }), true), "s", "s-soon") +
         "</section>";
     }
-    // Interested row: saved titles for this tab (newest first), narrowed by search and service only.
-    var mine = [];
-    Object.keys(interested).reverse().forEach(function (k) {
-      var kind = k.charAt(0), title = k.slice(2), list = kind === "m" ? DATA.movies : DATA.shows;
-      if ((kind === "m" && state.tab === "shows") || (kind === "s" && state.tab === "movies")) return;
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].title !== title) continue;
-        var m = list[i], info = kind === "m" ? movieInfo(m) : showInfo(m);
-        var svcOk = !state.service || (kind === "m" ? info.services.indexOf(state.service) !== -1 : m.service === state.service);
-        if (matchesQuery(m.title) && svcOk) mine.push({ m: m, i: i, info: info, kind: kind });
-        break;
-      }
-    });
+    // Interested row: saved, not-yet-watched titles (newest first), narrowed by search and service only.
+    var mine = savedItems(interested).filter(function (x) { return !watched.has(x.kind, x.m); });
     if (mine.length) html = '<section class="type-section mine">' + rail("Interested", mine, null, "mine") + "</section>" + html;
+
+    // Watched titles are hidden everywhere else and parked in a collapsed section at the bottom.
+    var seen = savedItems(watched);
+    if (seen.length) {
+      html += '<details class="watched-box" id="watchedBox"' + (state.watchedOpen ? " open" : "") + ">" +
+        '<summary>Watched <span class="count">' + seen.length + "</span></summary>" +
+        rail(null, seen, null, "watched") + "</details>";
+    }
 
     var filtered = state.q || state.service || state.movieAvail.length || state.showAvail.length;
     if (!filtered) {
@@ -761,13 +796,32 @@
     main.querySelectorAll(".rail-body").forEach(updateArrows);
   }
 
-  function onInterest(btn) {
-    var kind = btn.dataset.kind, i = Number(btn.dataset.i), m = kind === "m" ? DATA.movies[i] : DATA.shows[i];
-    toggleInterested(kind, m);
-    var on = isInterested(kind, m);
-    document.querySelectorAll('#detailBody .interest[data-kind="' + kind + '"][data-i="' + i + '"]').forEach(function (b) {
+  // Titles in a saved list for the current tab (newest first), narrowed by search and service.
+  // Keys whose title is no longer in data.json are skipped.
+  function savedItems(set) {
+    var out = [];
+    set.keys().reverse().forEach(function (k) {
+      var kind = k.charAt(0), title = k.slice(2), list = kind === "m" ? DATA.movies : DATA.shows;
+      if ((kind === "m" && state.tab === "shows") || (kind === "s" && state.tab === "movies")) return;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].title !== title) continue;
+        var m = list[i], info = kind === "m" ? movieInfo(m) : showInfo(m);
+        var svcOk = !state.service || (kind === "m" ? info.services.indexOf(state.service) !== -1 : m.service === state.service);
+        if (matchesQuery(m.title) && svcOk) out.push({ m: m, i: i, info: info, kind: kind });
+        break;
+      }
+    });
+    return out;
+  }
+
+  function onToggle(btn) {
+    var t = TOGGLES[btn.dataset.toggle], kind = btn.dataset.kind, i = Number(btn.dataset.i);
+    var m = kind === "m" ? DATA.movies[i] : DATA.shows[i];
+    t.set.toggle(kind, m);
+    var on = t.set.has(kind, m);
+    document.querySelectorAll('#detailBody .toggle[data-toggle="' + btn.dataset.toggle + '"]').forEach(function (b) {
       b.setAttribute("aria-pressed", String(on));
-      b.textContent = on ? "✓ Interested" : "＋ Interested";
+      b.textContent = on ? t.on : t.off;
     });
     render();
   }
@@ -822,8 +876,8 @@
   });
   var main = document.getElementById("main"), dlg = document.getElementById("detail");
   main.addEventListener("click", function (e) {
-    var ib = e.target.closest(".interest");
-    if (ib) return onInterest(ib);
+    var tb = e.target.closest(".toggle");
+    if (tb) return onToggle(tb);
     var t = e.target.closest(".tile, .hero-more");
     if (t) return openDetail(t.dataset.kind, Number(t.dataset.i));
     var a = e.target.closest(".arrow");
@@ -837,9 +891,15 @@
   }, true);
   window.addEventListener("resize", function () { main.querySelectorAll(".rail-body").forEach(updateArrows); });
   document.getElementById("detailBody").addEventListener("click", function (e) {
-    var ib = e.target.closest(".interest");
-    if (ib) onInterest(ib);
+    var tb = e.target.closest(".toggle");
+    if (tb) onToggle(tb);
   });
+  // Remember whether the Watched section is open across re-renders; arrows need measuring once it is visible.
+  main.addEventListener("toggle", function (e) {
+    if (e.target.id !== "watchedBox") return;
+    state.watchedOpen = e.target.open;
+    e.target.querySelectorAll(".rail-body").forEach(updateArrows);
+  }, true);
   document.getElementById("closeDetail").addEventListener("click", function () { dlg.close(); });
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
 

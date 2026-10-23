@@ -90,6 +90,8 @@ Each group ("Watch now", "Coming soon") is a row of poster tiles that scrolls si
 
 Tap **＋ Interested** on a title's detail panel, or on the featured title, to save it. Saved titles show a ✓ on their poster and appear in an **Interested** row at the top, newest first. That row follows the current tab, search and service filter. Picks are kept in the browser's `localStorage` (key `tmh-interested`). They stay on that device and browser only, and survive `data.json` updates because they're stored by title. If you rename a title in `data.json`, it drops out of the row. If the browser blocks storage (some private modes), the button still works for the visit but nothing is remembered.
 
+Tap **Mark watched** to hide a title. It disappears from every row, the Interested row and the featured spot. It's parked in a collapsed **Watched** section at the bottom of the page; open that section and tap a title to un-mark it. Watched picks are stored the same way, under the key `tmh-watched`. A title can be both Interested and Watched. Un-marking it as watched puts it back in the Interested row.
+
 When no search or filter is active, a featured title sits at the top. It's the first "Watch now" title under the current sort: movies on the All and Movies tabs, shows on the Shows tab.
 
 ## Sorting
