@@ -177,6 +177,14 @@
   .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .art .rank { top: 6px; left: 6px; font-size: 11px; padding: 2px 7px; background: rgba(0,0,0,.65); }
   .art .ribbon { top: 6px; right: 6px; font-size: 9.5px; padding: 2px 5px; }
+  .art .mark {
+    position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 12px; font-weight: 900;
+    background: #ffb547; color: #1a1204; box-shadow: 0 2px 6px rgba(0,0,0,.45);
+  }
+  .art .mark ~ .ribbon { top: 33px; }
+  .interest[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .detail-actions { display: flex; gap: 8px; }
   .art .status {
     position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px); padding: 3px 7px; border-radius: 6px;
     background: rgba(0,0,0,.72); backdrop-filter: blur(4px); font-size: 11px; font-weight: 700;
@@ -440,6 +448,28 @@
 
   // ---------- state ----------
   var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [] };
+
+  // ---------- interested (saved in this browser only) ----------
+  // Stored as "m:<title>" / "s:<title>" keys, in the order they were added.
+  var INTEREST_KEY = "tmh-interested";
+  var interested = {};
+  try {
+    (JSON.parse(localStorage.getItem(INTEREST_KEY)) || []).forEach(function (k) {
+      if (typeof k === "string" && /^[ms]:/.test(k)) interested[k] = true;
+    });
+  } catch (e) {}
+  function ikey(kind, m) { return kind + ":" + m.title; }
+  function isInterested(kind, m) { return !!interested[ikey(kind, m)]; }
+  function toggleInterested(kind, m) {
+    var k = ikey(kind, m);
+    if (interested[k]) delete interested[k]; else interested[k] = true;
+    try { localStorage.setItem(INTEREST_KEY, JSON.stringify(Object.keys(interested))); } catch (e) {}
+  }
+  function interestBtn(kind, i, m, cls) {
+    var on = isInterested(kind, m);
+    return '<button class="btn ' + cls + ' interest" type="button" data-kind="' + kind + '" data-i="' + i +
+      '" aria-pressed="' + on + '">' + (on ? "✓ Interested" : "＋ Interested") + "</button>";
+  }
   var DATA = null;
 
   function load(cb) {
@@ -530,6 +560,7 @@
         '<div class="sub">' + esc([m.year, m.genre].filter(Boolean).join(" · ")) + "</div>" +
       "</div>" +
       '<div class="body">' +
+        (x.kind ? '<div class="detail-actions">' + interestBtn(x.kind, x.i, m, "ghost") + "</div>" : "") +
         '<div class="badges">' + b.join("") + "</div>" +
         '<div class="facts">' + facts.join("") + "</div>" +
         '<div class="timeline" aria-label="Release timeline">' +
@@ -570,6 +601,7 @@
         '<div class="sub">' + esc(sub) + "</div>" +
       "</div>" +
       '<div class="body">' +
+        (x.kind ? '<div class="detail-actions">' + interestBtn(x.kind, x.i, s, "ghost") + "</div>" : "") +
         '<div class="badges">' + b.join("") + "</div>" +
         (facts.length ? '<div class="facts">' + facts.join("") + "</div>" : "") +
         (s.notes ? '<p class="notes">' + esc(s.notes) + "</p>" : "") +
@@ -591,17 +623,18 @@
   }
 
   function tile(kind, x) {
-    var m = x.m, st = tileStatus(kind, x), cr = kind === "s" ? m.chartRank : null;
+    var m = x.m, st = tileStatus(kind, x), cr = kind === "s" ? m.chartRank : null, on = isInterested(kind, m);
     var img = posterUrl(m) ?
       '<img src="' + esc(m.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "";
     var meta = kind === "m" ?
       [fmtGross(m.worldwideGross), m.genre].filter(Boolean).join(" · ") :
       [seasonLabel(m.season), m.service].filter(Boolean).join(" · ");
     return '<button class="tile" type="button" data-kind="' + kind + '" data-i="' + x.i + '" aria-label="' +
-        esc(m.title + ", " + st.label) + '">' +
+        esc(m.title + ", " + st.label + (on ? ", interested" : "")) + '">' +
       '<div class="art" style="background:' + gradient(m.title) + '">' +
         '<span class="art-title">' + esc(m.title) + "</span>" + img +
         (cr ? '<span class="rank">#' + cr.rank + " " + esc(cr.service) + "</span>" : "") +
+        (on ? '<span class="mark" aria-hidden="true">✓</span>' : "") +
         (kind === "s" && x.info.isNew ? '<span class="ribbon">NEW</span>' : "") +
         '<span class="status ' + st.cls + '">' + esc(st.label) + "</span>" +
       "</div>" +
@@ -610,12 +643,14 @@
       "</button>";
   }
 
-  function rail(title, items, kind) {
+  // key identifies the row so its sideways scroll position survives re-renders.
+  function rail(title, items, kind, key) {
     return '<section class="rail"><h3>' + esc(title) + '<span class="count">' + items.length + "</span></h3>" +
       (items.length ?
         '<div class="rail-body">' +
           '<button class="arrow prev" type="button" aria-label="Scroll left" tabindex="-1">‹</button>' +
-          '<div class="scroller">' + items.map(function (x) { return tile(kind, x); }).join("") + "</div>" +
+          '<div class="scroller" data-key="' + esc(key) + '">' +
+            items.map(function (x) { return tile(x.kind || kind, x); }).join("") + "</div>" +
           '<button class="arrow next" type="button" aria-label="Scroll right" tabindex="-1">›</button>' +
         "</div>" :
         '<div class="empty">Nothing matches.</div>') +
@@ -646,6 +681,7 @@
         '<div class="badges">' + badge(st.label, st.cls) + asOf + "</div>" +
         '<div class="hero-actions">' +
           '<button class="btn primary hero-more" type="button" data-kind="' + kind + '" data-i="' + x.i + '">Details</button>' +
+          interestBtn(kind, x.i, m, "ghost") +
           '<a class="btn ghost" href="' + JUSTWATCH + encodeURIComponent(m.title) + '" target="_blank" rel="noopener">Where to watch ↗</a>' +
         "</div>" +
       "</div></section>";
@@ -659,7 +695,7 @@
 
   function openDetail(kind, i) {
     var m = kind === "m" ? DATA.movies[i] : DATA.shows[i];
-    var x = { m: m, info: kind === "m" ? movieInfo(m) : showInfo(m) };
+    var x = { m: m, i: i, kind: kind, info: kind === "m" ? movieInfo(m) : showInfo(m) };
     document.getElementById("detailBody").innerHTML = kind === "m" ? movieCard(x) : showCard(x);
     var dlg = document.getElementById("detail");
     if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
@@ -677,8 +713,8 @@
         return true;
       });
       html += '<section class="type-section"><h2>Movies</h2>' +
-        rail("Watch now", (mNow = sortMovies(movies.filter(function (x) { return x.info.watchNow; }), false)), "m") +
-        rail("Coming soon", sortMovies(movies.filter(function (x) { return !x.info.watchNow; }), true), "m") +
+        rail("Watch now", (mNow = sortMovies(movies.filter(function (x) { return x.info.watchNow; }), false)), "m", "m-now") +
+        rail("Coming soon", sortMovies(movies.filter(function (x) { return !x.info.watchNow; }), true), "m", "m-soon") +
         "</section>";
     }
     if (state.tab !== "movies") {
@@ -689,18 +725,51 @@
         return true;
       });
       html += '<section class="type-section"><h2>Shows</h2>' +
-        rail("Watch now", (sNow = sortShows(shows.filter(function (x) { return x.info.watchNow; }), false)), "s") +
-        rail("Coming soon", sortShows(shows.filter(function (x) { return !x.info.watchNow; }), true), "s") +
+        rail("Watch now", (sNow = sortShows(shows.filter(function (x) { return x.info.watchNow; }), false)), "s", "s-now") +
+        rail("Coming soon", sortShows(shows.filter(function (x) { return !x.info.watchNow; }), true), "s", "s-soon") +
         "</section>";
     }
+    // Interested row: saved titles for this tab (newest first), narrowed by search and service only.
+    var mine = [];
+    Object.keys(interested).reverse().forEach(function (k) {
+      var kind = k.charAt(0), title = k.slice(2), list = kind === "m" ? DATA.movies : DATA.shows;
+      if ((kind === "m" && state.tab === "shows") || (kind === "s" && state.tab === "movies")) return;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].title !== title) continue;
+        var m = list[i], info = kind === "m" ? movieInfo(m) : showInfo(m);
+        var svcOk = !state.service || (kind === "m" ? info.services.indexOf(state.service) !== -1 : m.service === state.service);
+        if (matchesQuery(m.title) && svcOk) mine.push({ m: m, i: i, info: info, kind: kind });
+        break;
+      }
+    });
+    if (mine.length) html = '<section class="type-section mine">' + rail("Interested", mine, null, "mine") + "</section>" + html;
+
     var filtered = state.q || state.service || state.movieAvail.length || state.showAvail.length;
     if (!filtered) {
       if (state.tab === "shows" && sNow.length) html = hero("s", sNow[0]) + html;
       else if (state.tab !== "shows" && mNow.length) html = hero("m", mNow[0]) + html;
     }
-    var main = document.getElementById("main");
+    var main = document.getElementById("main"), scrollPos = {};
+    main.querySelectorAll(".scroller").forEach(function (sc) { scrollPos[sc.dataset.key] = sc.scrollLeft; });
     main.innerHTML = html;
+    main.querySelectorAll(".scroller").forEach(function (sc) {
+      if (!scrollPos[sc.dataset.key]) return;
+      sc.style.scrollBehavior = "auto";
+      sc.scrollLeft = scrollPos[sc.dataset.key];
+      sc.style.scrollBehavior = "";
+    });
     main.querySelectorAll(".rail-body").forEach(updateArrows);
+  }
+
+  function onInterest(btn) {
+    var kind = btn.dataset.kind, i = Number(btn.dataset.i), m = kind === "m" ? DATA.movies[i] : DATA.shows[i];
+    toggleInterested(kind, m);
+    var on = isInterested(kind, m);
+    document.querySelectorAll('#detailBody .interest[data-kind="' + kind + '"][data-i="' + i + '"]').forEach(function (b) {
+      b.setAttribute("aria-pressed", String(on));
+      b.textContent = on ? "✓ Interested" : "＋ Interested";
+    });
+    render();
   }
 
   function syncControls() {
@@ -753,6 +822,8 @@
   });
   var main = document.getElementById("main"), dlg = document.getElementById("detail");
   main.addEventListener("click", function (e) {
+    var ib = e.target.closest(".interest");
+    if (ib) return onInterest(ib);
     var t = e.target.closest(".tile, .hero-more");
     if (t) return openDetail(t.dataset.kind, Number(t.dataset.i));
     var a = e.target.closest(".arrow");
@@ -765,6 +836,10 @@
     if (e.target.classList && e.target.classList.contains("scroller")) updateArrows(e.target.parentNode);
   }, true);
   window.addEventListener("resize", function () { main.querySelectorAll(".rail-body").forEach(updateArrows); });
+  document.getElementById("detailBody").addEventListener("click", function (e) {
+    var ib = e.target.closest(".interest");
+    if (ib) onInterest(ib);
+  });
   document.getElementById("closeDetail").addEventListener("click", function () { dlg.close(); });
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
 

@@ -88,6 +88,8 @@ This checks the dates, services and patterns in `data.json` and stops if any are
 
 Each group ("Watch now", "Coming soon") is a row of poster tiles that scrolls sideways: swipe on phones, arrow buttons or trackpad on desktop. Tap a tile for the full details: badges, release timeline, notes and the JustWatch link. On phones this opens as a bottom sheet.
 
+Tap **＋ Interested** on a title's detail panel, or on the featured title, to save it. Saved titles show a ✓ on their poster and appear in an **Interested** row at the top, newest first. That row follows the current tab, search and service filter. Picks are kept in the browser's `localStorage` (key `tmh-interested`). They stay on that device and browser only, and survive `data.json` updates because they're stored by title. If you rename a title in `data.json`, it drops out of the row. If the browser blocks storage (some private modes), the button still works for the visit but nothing is remembered.
+
 When no search or filter is active, a featured title sits at the top. It's the first "Watch now" title under the current sort: movies on the All and Movies tabs, shows on the Shows tab.
 
 ## Sorting
