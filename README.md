@@ -84,12 +84,18 @@ python3 sync-fallback.py
 
 This checks the dates, services and patterns in `data.json` and stops if any are wrong. If they're fine, it refreshes the inline copy in `index.html`. On GitHub Pages the page always reads `data.json` itself, so the inline copy only matters for `file://`. Running the script is still the easiest way to catch typos.
 
+## Layout
+
+Each group ("Watch now", "Coming soon") is a row of poster tiles that scrolls sideways: swipe on phones, arrow buttons or trackpad on desktop. Tap a tile for the full details: badges, release timeline, notes and the JustWatch link. On phones this opens as a bottom sheet.
+
+When no search or filter is active, a featured title sits at the top. It's the first "Watch now" title under the current sort: movies on the All and Movies tabs, shows on the Shows tab.
+
 ## Sorting
 
 - **Hot** (default): movies by worldwide gross; shows by chart rank, then latest premiere.
 - **Newest**: movies by theatrical date; shows by premiere.
-- **Recently came home / premiered**: movies by their latest home release so far; shows by premiere.
-- In every "Coming soon" group, titles are listed soonest first. Movies still in cinemas with no home date come last.
+- **Recently released** (labelled "Recently came home" on the Movies tab and "Recently premiered" on the Shows tab): movies by their latest home release so far; shows by premiere.
+- In every "Coming soon" row, titles are listed soonest first. Movies still in cinemas with no home date come last.
 
 ## Running locally
 
