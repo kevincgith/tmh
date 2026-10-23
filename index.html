@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TMH · 睇咩好？</title>
+<meta name="description" content="What's hot in movies and TV right now, and whether you can watch it at home.">
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #171920;
+    --surface-2: #1f222b;
+    --border: #2a2e39;
+    --text: #eceef3;
+    --muted: #9399a8;
+    --faint: #5d6372;
+    --accent: #ffb547;
+    --accent-ink: #1a1204;
+    --ok: #4ade80;
+    --ok-bg: rgba(74, 222, 128, .12);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, .13);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251, 191, 36, .13);
+    --neutral-bg: rgba(147, 153, 168, .14);
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-2: #f0efeb;
+    --border: #e1dfd8;
+    --text: #17181c;
+    --muted: #5f6470;
+    --faint: #a3a7b0;
+    --accent: #c46a00;
+    --accent-ink: #ffffff;
+    --ok: #15803d;
+    --ok-bg: rgba(21, 128, 61, .1);
+    --info: #1d4ed8;
+    --info-bg: rgba(29, 78, 216, .09);
+    --warn: #a16207;
+    --warn-bg: rgba(161, 98, 7, .1);
+    --neutral-bg: rgba(95, 100, 112, .1);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang HK", "Noto Sans HK", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: inherit; }
+
+  /* Header */
+  header { padding: 28px 0 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .brand h1 { margin: 0; font-size: clamp(52px, 14vw, 84px); line-height: .9; font-weight: 900; letter-spacing: -.04em; }
+  .brand h1 span { color: var(--accent); }
+  .brand .zh { margin: 6px 0 0; font-size: 20px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+  .meta-line { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); max-width: 46ch; }
+  .meta-line strong { color: var(--text); font-weight: 600; }
+  .theme-btn {
+    flex: none; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+    display: grid; place-items: center; font-size: 18px;
+  }
+
+  /* Controls */
+  .controls { background: var(--bg); padding: 10px 0 12px; border-bottom: 1px solid var(--border); }
+  @media (min-width: 768px) { .controls { position: sticky; top: 0; z-index: 5; } }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .row + .row { margin-top: 8px; }
+  .tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+  .tabs button {
+    border: 0; background: transparent; padding: 6px 16px; border-radius: 999px; cursor: pointer;
+    font-weight: 600; color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .search {
+    flex: 1 1 180px; min-width: 0; height: 38px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+  }
+  .search:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  select {
+    height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); min-width: 0; max-width: 100%;
+  }
+  .sel { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip-group .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); padding: 4px 11px; border-radius: 999px;
+    font-size: 13px; cursor: pointer; color: var(--muted);
+  }
+  .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent); }
+  .clear { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 13px; padding: 4px 6px; }
+  [hidden] { display: none !important; }
+
+  /* Sections */
+  .type-section { margin-top: 28px; }
+  .type-section > h2 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.02em; }
+  .group { margin-top: 16px; }
+  .group > h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+  .group > h3 .count { color: var(--faint); margin-left: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 980px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .empty { color: var(--muted); font-size: 14px; padding: 10px 0; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .poster { position: relative; padding: 16px 16px 14px; min-height: 104px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; }
+  .poster h4 { margin: 0; font-size: 21px; line-height: 1.12; font-weight: 800; letter-spacing: -.01em; text-shadow: 0 1px 12px rgba(0,0,0,.25); overflow-wrap: anywhere; padding-right: 44px; }
+  .poster .sub { margin-top: 4px; font-size: 12.5px; opacity: .85; }
+  .ribbon { position: absolute; top: 10px; right: 10px; background: #fff; color: #111; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; padding: 3px 7px; border-radius: 6px; }
+  .rank { position: absolute; top: 10px; left: 12px; background: rgba(0,0,0,.35); backdrop-filter: blur(4px); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .poster.has-rank { padding-top: 38px; }
+  .body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--neutral-bg); color: var(--muted); white-space: nowrap; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.info { background: var(--info-bg); color: var(--info); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+  .facts b { color: var(--text); font-weight: 600; }
+  .timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; position: relative; }
+  .step { font-size: 11.5px; line-height: 1.3; min-width: 0; padding-top: 12px; position: relative; }
+  .step::before { content: ""; position: absolute; top: 3px; left: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .step::after { content: ""; position: absolute; top: 6px; left: 11px; right: 2px; height: 1px; background: var(--border); }
+  .step:last-child::after { display: none; }
+  .step .k { color: var(--muted); }
+  .step .d { font-weight: 600; }
+  .step .s { color: var(--muted); overflow-wrap: anywhere; }
+  .step.future { opacity: .45; }
+  .step.future::before { background: transparent; border: 1px solid var(--muted); }
+  .step.unknown { opacity: .4; }
+  .step.unknown::before { background: transparent; border: 1px dashed var(--muted); }
+  .notes { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .jw { font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; }
+  .jw:hover { text-decoration: underline; }
+  .small { font-size: 11.5px; color: var(--faint); }
+
+  footer { margin-top: 48px; font-size: 12px; color: var(--muted); }
+  .err { margin-top: 24px; padding: 14px; border-radius: 12px; background: var(--warn-bg); color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>TMH<span>.</span></h1>
+      <p class="zh" lang="zh-HK">睇咩好？</p>
+      <p class="meta-line">Updated <strong id="updated">—</strong> · All dates are US releases; Hong Kong availability may differ.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to light mode" title="Toggle light/dark">☀︎</button>
+  </header>
+
+  <div class="controls" id="controls">
+    <div class="row">
+      <div class="tabs" role="tablist" aria-label="Type">
+        <button role="tab" data-tab="all" aria-selected="true">All</button>
+        <button role="tab" data-tab="movies" aria-selected="false">Movies</button>
+        <button role="tab" data-tab="shows" aria-selected="false">Shows</button>
+      </div>
+      <input class="search" id="search" type="search" placeholder="Search titles" aria-label="Search titles" autocomplete="off">
+    </div>
+    <div class="row">
+      <label class="sel">Sort
+        <select id="sort">
+          <option value="hot">Hot</option>
+          <option value="newest">Newest</option>
+          <option value="recent" id="recentOpt">Recently came home / premiered</option>
+        </select>
+      </label>
+      <label class="sel">Service
+        <select id="service"><option value="">All services</option></select>
+      </label>
+    </div>
+    <div class="row">
+      <div class="chip-group" id="movieChips">
+        <span class="lbl">Movies</span>
+        <button class="chip" data-kind="movie" data-val="streaming" aria-pressed="false">Streaming</button>
+        <button class="chip" data-kind="movie" data-val="digital" aria-pressed="false">Digital</button>
+        <button class="chip" data-kind="movie" data-val="physical" aria-pressed="false">Physical</button>
+      </div>
+      <div class="chip-group" id="showChips">
+        <span class="lbl">Shows</span>
+        <button class="chip" data-kind="show" data-val="out" aria-pressed="false">Out now</button>
+        <button class="chip" data-kind="show" data-val="airing" aria-pressed="false">Airing</button>
+        <button class="chip" data-kind="show" data-val="soon" aria-pressed="false">Coming soon</button>
+      </div>
+      <button class="clear" id="clear" type="button" hidden>Clear filters</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <footer>
+    <p>Status is computed from today's date (<span id="todayLbl"></span>) against the release dates in <code>data.json</code>. Availability links go to JustWatch Hong Kong search.</p>
+  </footer>
+</div>
+
+<!-- Fallback copy of data.json, used when the page is opened via file://. Refresh with: python3 sync-fallback.py -->
+<script id="tmh-fallback" type="application/json">{"updated":"2026-10-23","movies":[{"title":"Spider-Man: Brand New Day","year":2026,"theatrical":"2026-07-31","worldwideGross":2480000000,"genre":"Superhero","digital":"2026-10-06","physical":"2026-12-15","streaming":null,"notes":"Streaming date not announced."},{"title":"The Odyssey","year":2026,"theatrical":"2026-07-17","worldwideGross":1740000000,"genre":"Epic / Adventure","digital":"2026-11-17","physical":"2026-11-17","streaming":null,"notes":""},{"title":"Toy Story 5","year":2026,"theatrical":"2026-06-19","worldwideGross":1140000000,"genre":"Animation / Family","digital":"2026-08-18","physical":"2026-09-22","streaming":{"service":"Disney+","date":"2026-09-23"},"notes":""},{"title":"Michael","year":2026,"theatrical":"2026-04-24","worldwideGross":1020000000,"genre":"Biopic / Music","digital":"2026-06-09","physical":"2026-07-14","streaming":{"service":"Starz","date":"2026-08-10"},"notes":""},{"title":"The Super Mario Galaxy Movie","year":2026,"theatrical":"2026-04-01","worldwideGross":1010000000,"genre":"Animation / Family","digital":"2026-05-19","physical":"2026-06-16","streaming":{"service":"Peacock","date":"2026-07-30"},"notes":""},{"title":"The Devil Wears Prada 2","year":2026,"theatrical":"2026-05-01","worldwideGross":693000000,"genre":"Comedy","digital":"2026-06-30","physical":"2026-07-28","streaming":{"service":"Disney+","date":"2026-07-29"},"notes":""},{"title":"Project Hail Mary","year":2026,"theatrical":"2026-03-20","worldwideGross":684000000,"genre":"Sci-fi","digital":null,"physical":"2026-08-11","streaming":{"service":"Prime Video","date":"2026-07-03"},"alsoStreaming":[{"service":"MGM+","date":"2026-06-18"}],"notes":"On MGM+ from 2026-06-18, Prime Video from 2026-07-03."},{"title":"Minions & Monsters","year":2026,"theatrical":"2026-07-01","worldwideGross":524000000,"genre":"Animation / Comedy","digital":"2026-08-11","physical":"2026-09-18","streaming":{"service":"Peacock","date":"2026-10-28"},"notes":""},{"title":"Obsession","year":2026,"theatrical":"2026-05-15","worldwideGross":517000000,"genre":"Horror","digital":"2026-06-30","physical":"2026-07-14","streaming":{"service":"Peacock","date":"2026-07-17"},"notes":""},{"title":"Backrooms","year":2026,"theatrical":"2026-05-29","worldwideGross":393000000,"genre":"Horror","digital":"2026-07-14","physical":null,"streaming":{"service":"HBO Max","date":"2026-09-25"},"notes":"Physical release is an A24 Shop exclusive (date unknown)."},{"title":"Hoppers","year":2026,"theatrical":"2026-03-06","worldwideGross":390000000,"genre":"Animation / Family","digital":"2026-04-28","physical":"2026-06-02","streaming":{"service":"Disney+","date":"2026-06-03"},"notes":""},{"title":"The Mandalorian and Grogu","year":2026,"theatrical":"2026-05-22","worldwideGross":346000000,"genre":"Sci-fi / Adventure","digital":null,"physical":"2026-08-25","streaming":{"service":"Disney+","date":"2026-09-02"},"notes":"Digital release was before Aug 2026; exact date unknown."},{"title":"Moana","year":2026,"theatrical":"2026-07-10","worldwideGross":323000000,"genre":"Family / Musical","digital":null,"physical":"2026-10-06","streaming":{"service":"Disney+","date":"2026-10-21"},"notes":"Live-action remake."},{"title":"Disclosure Day","year":2026,"theatrical":"2026-06-12","worldwideGross":241000000,"genre":"Sci-fi","digital":null,"physical":"2026-10-06","streaming":{"service":"Peacock","date":"2026-10-09"},"notes":""},{"title":"Supergirl","year":2026,"theatrical":"2026-06-26","worldwideGross":null,"genre":"Superhero","digital":"2026-07-28","physical":"2026-09-08","streaming":{"service":"HBO Max","date":"2026-09-10"},"notes":""},{"title":"Masters of the Universe","year":2026,"theatrical":"2026-06-05","worldwideGross":113000000,"genre":"Fantasy / Action","digital":null,"physical":"2026-10-20","streaming":{"service":"Prime Video","date":"2026-07-22"},"notes":""},{"title":"Mortal Kombat II","year":2026,"theatrical":"2026-05-08","worldwideGross":128000000,"genre":"Action","digital":"2026-06-09","physical":"2026-07-28","streaming":{"service":"HBO Max","date":"2026-07-24"},"notes":""},{"title":"Scream 7","year":2026,"theatrical":"2026-02-27","worldwideGross":null,"genre":"Horror","digital":null,"physical":"2026-06-16","streaming":{"service":"Paramount+","date":"2026-05-28"},"notes":""},{"title":"Wuthering Heights","year":2026,"theatrical":"2026-02-13","worldwideGross":null,"genre":"Romance / Drama","digital":null,"physical":"2026-05-05","streaming":{"service":"HBO Max","date":"2026-05-01"},"notes":""},{"title":"Avatar: Fire and Ash","year":2025,"theatrical":"2025-12-19","worldwideGross":null,"genre":"Sci-fi / Adventure","digital":null,"physical":null,"streaming":{"service":"Disney+","date":"2026-06-24"},"notes":""},{"title":"Resident Evil","year":2026,"theatrical":"2026-09-18","worldwideGross":361000000,"genre":"Horror / Action","digital":null,"physical":null,"streaming":null,"notes":""},{"title":"Verity","year":2026,"theatrical":"2026-10-02","worldwideGross":null,"genre":"Thriller","digital":null,"physical":null,"streaming":null,"notes":""},{"title":"Other Mommy","year":2026,"theatrical":"2026-10-09","worldwideGross":null,"genre":"Horror","digital":null,"physical":null,"streaming":null,"notes":""},{"title":"Street Fighter","year":2026,"theatrical":"2026-10-16","worldwideGross":null,"genre":"Action","digital":null,"physical":null,"streaming":null,"notes":""}],"shows":[{"title":"Below","season":null,"service":"Netflix","premiere":null,"finale":null,"pattern":null,"episodes":null,"genre":null,"chartRank":{"service":"Netflix","rank":1,"asOf":"2026-10-22"},"notes":"Premiere date unknown."},{"title":"Cyberpunk: Edgerunners","season":null,"service":"Netflix","premiere":null,"finale":null,"pattern":null,"episodes":null,"genre":"Anime / Sci-fi","chartRank":{"service":"Netflix","rank":2,"asOf":"2026-10-22"},"notes":"New season; premiere date unknown."},{"title":"The Diplomat","season":4,"service":"Netflix","premiere":"2026-10-15","finale":null,"pattern":"binge","episodes":8,"genre":"Political thriller","chartRank":{"service":"Netflix","rank":3,"asOf":"2026-10-22"},"notes":""},{"title":"East of Eden","season":"Limited","service":"Netflix","premiere":"2026-10-01","finale":null,"pattern":null,"episodes":7,"genre":"Drama","chartRank":{"service":"Netflix","rank":7,"asOf":"2026-10-22"},"notes":""},{"title":"Nobody Wants This","season":3,"service":"Netflix","premiere":"2026-10-22","finale":null,"pattern":"binge","episodes":10,"genre":"Rom-com","chartRank":null,"notes":""},{"title":"Lupin","season":"Part 4","service":"Netflix","premiere":"2026-10-23","finale":null,"pattern":null,"episodes":null,"genre":"Crime / Heist","chartRank":null,"notes":""},{"title":"Carrie","season":1,"service":"Prime Video","premiere":"2026-10-07","finale":null,"pattern":"binge","episodes":8,"genre":"Horror","chartRank":{"service":"Prime Video","rank":1,"asOf":"2026-10-21"},"notes":""},{"title":"Neagley","season":1,"service":"Prime Video","premiere":"2026-09-16","finale":null,"pattern":null,"episodes":null,"genre":"Action / Crime","chartRank":{"service":"Prime Video","rank":2,"asOf":"2026-10-21"},"notes":""},{"title":"The Terminal List","season":2,"service":"Prime Video","premiere":"2026-10-21","finale":null,"pattern":null,"episodes":null,"genre":"Action thriller","chartRank":null,"notes":""},{"title":"VisionQuest","season":1,"service":"Disney+","premiere":"2026-10-14","finale":null,"pattern":null,"episodes":null,"genre":"Superhero","chartRank":null,"notes":""},{"title":"Crystal Lake","season":1,"service":"Peacock","premiere":"2026-10-15","finale":null,"pattern":null,"episodes":null,"genre":"Horror","chartRank":null,"notes":""},{"title":"Slow Horses","season":6,"service":"Apple TV","premiere":"2026-09-16","finale":null,"pattern":null,"episodes":null,"genre":"Spy thriller","chartRank":null,"notes":""},{"title":"Tulsa King","season":4,"service":"Paramount+","premiere":"2026-10-16","finale":null,"pattern":null,"episodes":null,"genre":"Crime drama","chartRank":null,"notes":""},{"title":"Marshals: A Yellowstone Story","season":2,"service":"Paramount+","premiere":"2026-10-04","finale":null,"pattern":null,"episodes":null,"genre":"Western / Crime","chartRank":null,"notes":"Airs on CBS; streams on Paramount+."},{"title":"War","season":1,"service":"HBO Max","premiere":"2026-10-01","finale":null,"pattern":null,"episodes":null,"genre":null,"chartRank":null,"notes":""},{"title":"Lanterns","season":1,"service":"HBO Max","premiere":"2026-08-16","finale":null,"pattern":"weekly","episodes":null,"genre":"Superhero","chartRank":null,"notes":""},{"title":"Dexter: Resurrection","season":2,"service":"Paramount+","premiere":"2026-10-30","finale":null,"pattern":null,"episodes":null,"genre":"Crime thriller","chartRank":null,"notes":""},{"title":"Nocturne","season":null,"service":"Apple TV","premiere":"2026-10-30","finale":null,"pattern":null,"episodes":null,"genre":null,"chartRank":null,"notes":""},{"title":"The Greatest","season":null,"service":"Prime Video","premiere":"2026-11-04","finale":null,"pattern":null,"episodes":null,"genre":null,"chartRank":null,"notes":""},{"title":"Stick","season":2,"service":"Apple TV","premiere":"2026-11-04","finale":null,"pattern":null,"episodes":null,"genre":"Comedy","chartRank":null,"notes":""},{"title":"The Rings of Power","season":3,"service":"Prime Video","premiere":"2026-11-11","finale":null,"pattern":null,"episodes":null,"genre":"Fantasy","chartRank":null,"notes":""},{"title":"Percy Jackson and the Olympians","season":3,"service":"Disney+","premiere":"2026-11-20","finale":null,"pattern":null,"episodes":null,"genre":"Fantasy / Adventure","chartRank":null,"notes":""},{"title":"Blade Runner 2099","season":null,"service":"Prime Video","premiere":"2026-11-25","finale":null,"pattern":null,"episodes":null,"genre":"Sci-fi","chartRank":null,"notes":""}]}</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var SERVICES = ["Netflix", "Disney+", "Prime Video", "HBO Max", "Apple TV", "Peacock", "Paramount+", "Starz", "MGM+"];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var JUSTWATCH = "https://www.justwatch.com/hk/search?q=";
+
+  // ---------- dates (ISO strings compare lexically) ----------
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function localISO(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var qsToday = new URLSearchParams(location.search).get("today");
+  var TODAY = qsToday && ISO_RE.test(qsToday) ? qsToday : localISO(new Date());
+
+  function addDays(iso, n) {
+    var p = iso.split("-").map(Number);
+    var d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n));
+    return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
+  }
+  function fmtDate(iso, forceYear) {
+    if (!iso) return "TBA";
+    var p = iso.split("-").map(Number);
+    var s = MONTHS[p[1] - 1] + " " + p[2];
+    return (forceYear || iso.slice(0, 4) !== TODAY.slice(0, 4)) ? s + ", " + p[0] : s;
+  }
+  function past(iso) { return !!iso && iso <= TODAY; }
+  function future(iso) { return !!iso && iso > TODAY; }
+
+  function fmtGross(n) {
+    if (n == null) return null;
+    if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+    if (n >= 1e6) return "$" + Math.round(n / 1e6) + "M";
+    return "$" + n.toLocaleString("en-US");
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function gradient(title) {
+    var h = 2166136261;
+    for (var i = 0; i < title.length; i++) { h ^= title.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h = h >>> 0;
+    var h1 = h % 360, h2 = (h1 + 35 + ((h >>> 9) % 70)) % 360, ang = 110 + ((h >>> 17) % 120);
+    return "linear-gradient(" + ang + "deg, hsl(" + h1 + " 62% 42%), hsl(" + h2 + " 70% 20%))";
+  }
+
+  // ---------- status ----------
+  function movieInfo(m) {
+    var streams = [m.streaming].concat(m.alsoStreaming || []).filter(function (s) { return s && s.service; });
+    var live = streams.filter(function (s) { return past(s.date); });
+    var avail = { streaming: live.length > 0, digital: past(m.digital), physical: past(m.physical) };
+    var homeDates = [m.digital, m.physical].concat(streams.map(function (s) { return s.date; }));
+    var pastHome = homeDates.filter(past).sort();
+    var status;
+    if (avail.streaming) status = { key: "streaming", label: "Streaming", cls: "ok" };
+    else if (avail.digital) status = { key: "digital", label: "Digital", cls: "ok" };
+    else if (avail.physical) status = { key: "physical", label: "4K/Blu-ray", cls: "ok" };
+    else {
+      var upcoming = [];
+      if (future(m.digital)) upcoming.push({ type: "Digital", date: m.digital });
+      streams.forEach(function (s) { if (future(s.date)) upcoming.push({ type: s.service, date: s.date }); });
+      if (future(m.physical)) upcoming.push({ type: "4K/Blu-ray", date: m.physical });
+      if (upcoming.length) {
+        var nearest = upcoming.map(function (u) { return u.date; }).sort()[0];
+        var types = upcoming.filter(function (u) { return u.date === nearest; }).map(function (u) { return u.type; });
+        status = { key: "coming", label: "Coming home " + fmtDate(nearest) + " · " + types.join(" + "), cls: "info", date: nearest };
+      } else {
+        status = { key: "cinemas", label: "In cinemas", cls: "warn" };
+      }
+    }
+    return {
+      status: status,
+      avail: avail,
+      live: live,
+      streams: streams,
+      watchNow: avail.streaming || avail.digital || avail.physical,
+      lastHome: pastHome.length ? pastHome[pastHome.length - 1] : null,
+      services: streams.map(function (s) { return s.service; })
+    };
+  }
+
+  function showInfo(s) {
+    var p = s.premiere, f = s.finale, st;
+    if ((s.pattern === "binge" && past(p)) || past(f)) {
+      st = { key: "allout", label: "All episodes out", cls: "ok", group: "out" };
+    } else if (past(p)) {
+      st = { key: "airing", label: s.pattern === "weekly" ? "Airing weekly" : "Now airing", cls: "info", group: "airing" };
+    } else if (future(p)) {
+      st = { key: "soon", label: "Coming " + fmtDate(p), cls: "warn", group: "soon", date: p };
+    } else if (s.chartRank) {
+      // No premiere date, but it is on a streaming chart, so it is out.
+      st = { key: "available", label: "Streaming now", cls: "ok", group: "out" };
+    } else {
+      st = { key: "tba", label: "Date TBA", cls: "", group: "soon" };
+    }
+    var isNew = past(p) && p >= addDays(TODAY, -14);
+    // Next-episode hint only when weekly cadence and an end bound (episode count or finale) make it derivable.
+    var nextEp = null;
+    if (st.key === "airing" && s.pattern === "weekly" && p && (s.episodes || f)) {
+      for (var k = 1; k < 520; k++) {
+        var d = addDays(p, 7 * k);
+        if ((s.episodes && k >= s.episodes) || (f && d > f)) break;
+        if (d > TODAY) { nextEp = d; break; }
+      }
+    }
+    return { status: st, isNew: isNew, nextEp: nextEp, watchNow: st.group !== "soon" };
+  }
+
+  // ---------- state ----------
+  var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [] };
+  var DATA = null;
+
+  function load(cb) {
+    function fallback() {
+      try {
+        var d = JSON.parse(document.getElementById("tmh-fallback").textContent);
+        if (!d.movies) throw new Error("empty fallback");
+        cb(d);
+      } catch (e) { cb(null, e); }
+    }
+    if (location.protocol === "file:") return fallback();
+    fetch("data.json", { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { cb(d); })
+      .catch(fallback);
+  }
+
+  // ---------- sorting ----------
+  function cmpDesc(a, b) { return a == null ? (b == null ? 0 : 1) : b == null ? -1 : a < b ? 1 : a > b ? -1 : 0; }
+  function cmpAsc(a, b) { return a == null ? (b == null ? 0 : 1) : b == null ? -1 : a < b ? -1 : a > b ? 1 : 0; }
+
+  function sortMovies(list, upcoming) {
+    var s = state.sort;
+    return list.slice().sort(function (a, b) {
+      if (upcoming) {
+        // Coming soon: dated arrivals soonest first, then "In cinemas" by the chosen sort.
+        var c = cmpAsc(a.info.status.date, b.info.status.date);
+        if (c) return c;
+      }
+      if (s === "hot") return cmpDesc(a.m.worldwideGross, b.m.worldwideGross) || cmpDesc(a.m.theatrical, b.m.theatrical);
+      if (s === "recent" && !upcoming) return cmpDesc(a.info.lastHome, b.info.lastHome) || cmpDesc(a.m.worldwideGross, b.m.worldwideGross);
+      return cmpDesc(a.m.theatrical, b.m.theatrical);
+    });
+  }
+
+  function sortShows(list, upcoming) {
+    var s = state.sort;
+    return list.slice().sort(function (a, b) {
+      if (upcoming) return cmpAsc(a.m.premiere, b.m.premiere) || a.m.title.localeCompare(b.m.title);
+      if (s === "hot") {
+        var ra = a.m.chartRank ? a.m.chartRank.rank : null, rb = b.m.chartRank ? b.m.chartRank.rank : null;
+        return cmpAsc(ra, rb) || cmpDesc(a.m.premiere, b.m.premiere);
+      }
+      return cmpDesc(a.m.premiere, b.m.premiere) || a.m.title.localeCompare(b.m.title);
+    });
+  }
+
+  // ---------- rendering ----------
+  function badge(text, cls) { return '<span class="badge ' + (cls || "") + '">' + esc(text) + "</span>"; }
+  function jwLink(title) {
+    return '<a class="jw" href="' + JUSTWATCH + encodeURIComponent(title) + '" target="_blank" rel="noopener">Where to watch ↗</a>';
+  }
+
+  function step(label, date, sub) {
+    var cls = date == null ? "unknown" : future(date) ? "future" : "";
+    return '<div class="step ' + cls + '"><div class="k">' + esc(label) + '</div><div class="d">' + esc(fmtDate(date)) + "</div>" +
+      (sub ? '<div class="s">' + esc(sub) + "</div>" : "") + "</div>";
+  }
+
+  function movieCard(x) {
+    var m = x.m, info = x.info, b = [];
+    info.live.forEach(function (s) { b.push(badge("Streaming · " + s.service, "ok")); });
+    if (info.avail.digital) b.push(badge("Digital", "ok"));
+    if (info.avail.physical) b.push(badge("4K/Blu-ray", "ok"));
+    if (!info.watchNow) b.push(badge(info.status.label, info.status.cls));
+    info.streams.forEach(function (s) {
+      if (future(s.date)) b.push(badge(s.service + " " + fmtDate(s.date), "info"));
+    });
+    var gross = fmtGross(m.worldwideGross);
+    var facts = [];
+    if (gross) facts.push("<span><b>" + gross + "</b> worldwide</span>");
+    facts.push("<span>In cinemas " + esc(fmtDate(m.theatrical, true)) + "</span>");
+    var st = m.streaming;
+    return '<article class="card">' +
+      '<div class="poster" style="background:' + gradient(m.title) + '">' +
+        "<h4>" + esc(m.title) + "</h4>" +
+        '<div class="sub">' + esc([m.year, m.genre].filter(Boolean).join(" · ")) + "</div>" +
+      "</div>" +
+      '<div class="body">' +
+        '<div class="badges">' + b.join("") + "</div>" +
+        '<div class="facts">' + facts.join("") + "</div>" +
+        '<div class="timeline" aria-label="Release timeline">' +
+          step("Theatrical", m.theatrical) +
+          step("Digital", m.digital) +
+          step("Streaming", st ? st.date : null, st ? st.service : null) +
+          step("Physical", m.physical) +
+        "</div>" +
+        (m.notes ? '<p class="notes">' + esc(m.notes) + "</p>" : "") +
+        '<div class="foot">' + jwLink(m.title) + "</div>" +
+      "</div></article>";
+  }
+
+  function seasonLabel(season) {
+    if (season == null || season === "") return null;
+    return typeof season === "number" ? "S" + season : String(season);
+  }
+
+  function showCard(x) {
+    var s = x.m, info = x.info, st = info.status, b = [], facts = [];
+    b.push(badge(st.label, st.cls));
+    // "Airing weekly" already states the cadence; elsewhere show the known pattern as its own badge.
+    if (s.pattern === "binge" || (s.pattern === "weekly" && st.key !== "airing")) b.push(badge(s.pattern === "binge" ? "Binge drop" : "Weekly"));
+    if (s.premiere) facts.push("<span>Premiere <b>" + esc(fmtDate(s.premiere)) + "</b></span>");
+    if (s.finale) facts.push("<span>Finale <b>" + esc(fmtDate(s.finale)) + "</b></span>");
+    if (s.episodes) facts.push("<span>" + s.episodes + " episodes</span>");
+    if (info.nextEp) facts.push("<span>Next ep (est.) <b>" + esc(fmtDate(info.nextEp)) + "</b></span>");
+    if (st.key === "airing" && !s.pattern) facts.push("<span>Release pattern unknown</span>");
+    if (st.key === "available") facts.push("<span>Premiere date unknown</span>");
+    var sub = [seasonLabel(s.season), s.service, s.genre].filter(Boolean).join(" · ");
+    var cr = s.chartRank;
+    return '<article class="card">' +
+      '<div class="poster' + (cr ? " has-rank" : "") + '" style="background:' + gradient(s.title) + '">' +
+        (cr ? '<span class="rank" title="As of ' + esc(fmtDate(cr.asOf, true)) + '">#' + cr.rank + " " + esc(cr.service) + "</span>" : "") +
+        (info.isNew ? '<span class="ribbon">NEW</span>' : "") +
+        "<h4>" + esc(s.title) + "</h4>" +
+        '<div class="sub">' + esc(sub) + "</div>" +
+      "</div>" +
+      '<div class="body">' +
+        '<div class="badges">' + b.join("") + "</div>" +
+        (facts.length ? '<div class="facts">' + facts.join("") + "</div>" : "") +
+        (s.notes ? '<p class="notes">' + esc(s.notes) + "</p>" : "") +
+        '<div class="foot">' + jwLink(s.title) +
+          (cr ? '<span class="small">chart as of ' + esc(fmtDate(cr.asOf)) + "</span>" : "") +
+        "</div>" +
+      "</div></article>";
+  }
+
+  function group(title, items, cardFn) {
+    return '<section class="group"><h3>' + esc(title) + '<span class="count">' + items.length + "</span></h3>" +
+      (items.length ? '<div class="grid">' + items.map(cardFn).join("") + "</div>" : '<div class="empty">Nothing matches.</div>') +
+      "</section>";
+  }
+
+  function matchesQuery(t) { return !state.q || t.toLowerCase().indexOf(state.q) !== -1; }
+
+  function render() {
+    var html = "";
+    if (state.tab !== "shows") {
+      var movies = DATA.movies.map(function (m) { return { m: m, info: movieInfo(m) }; }).filter(function (x) {
+        if (!matchesQuery(x.m.title)) return false;
+        if (state.service && x.info.services.indexOf(state.service) === -1) return false;
+        if (state.movieAvail.length && !state.movieAvail.some(function (k) { return x.info.avail[k]; })) return false;
+        return true;
+      });
+      html += '<section class="type-section"><h2>Movies</h2>' +
+        group("Watch now", sortMovies(movies.filter(function (x) { return x.info.watchNow; }), false), movieCard) +
+        group("Coming soon", sortMovies(movies.filter(function (x) { return !x.info.watchNow; }), true), movieCard) +
+        "</section>";
+    }
+    if (state.tab !== "movies") {
+      var shows = DATA.shows.map(function (s) { return { m: s, info: showInfo(s) }; }).filter(function (x) {
+        if (!matchesQuery(x.m.title)) return false;
+        if (state.service && x.m.service !== state.service) return false;
+        if (state.showAvail.length && state.showAvail.indexOf(x.info.status.group) === -1) return false;
+        return true;
+      });
+      html += '<section class="type-section"><h2>Shows</h2>' +
+        group("Watch now", sortShows(shows.filter(function (x) { return x.info.watchNow; }), false), showCard) +
+        group("Coming soon", sortShows(shows.filter(function (x) { return !x.info.watchNow; }), true), showCard) +
+        "</section>";
+    }
+    document.getElementById("main").innerHTML = html;
+  }
+
+  function syncControls() {
+    document.querySelectorAll("[role=tab]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)); });
+    document.getElementById("movieChips").hidden = state.tab === "shows";
+    document.getElementById("showChips").hidden = state.tab === "movies";
+    document.getElementById("recentOpt").textContent =
+      state.tab === "movies" ? "Recently came home" : state.tab === "shows" ? "Recently premiered" : "Recently came home / premiered";
+    document.querySelectorAll(".chip").forEach(function (c) {
+      var list = c.dataset.kind === "movie" ? state.movieAvail : state.showAvail;
+      c.setAttribute("aria-pressed", String(list.indexOf(c.dataset.val) !== -1));
+    });
+    document.getElementById("clear").hidden = !(state.q || state.service || state.movieAvail.length || state.showAvail.length);
+  }
+
+  function update() { syncControls(); render(); }
+
+  // ---------- theme ----------
+  function setTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    var btn = document.getElementById("themeBtn");
+    btn.textContent = t === "dark" ? "☀︎" : "☾";
+    btn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    try { localStorage.setItem("tmh-theme", t); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem("tmh-theme"); } catch (e) {}
+  setTheme(saved === "light" ? "light" : "dark");
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    setTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  });
+
+  // ---------- events ----------
+  var svcSel = document.getElementById("service");
+  SERVICES.forEach(function (s) { var o = document.createElement("option"); o.value = s; o.textContent = s; svcSel.appendChild(o); });
+
+  document.querySelectorAll("[role=tab]").forEach(function (b) {
+    b.addEventListener("click", function () { state.tab = b.dataset.tab; update(); });
+  });
+  document.getElementById("search").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); update(); });
+  document.getElementById("sort").addEventListener("change", function (e) { state.sort = e.target.value; update(); });
+  svcSel.addEventListener("change", function (e) { state.service = e.target.value; update(); });
+  document.querySelectorAll(".chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var list = c.dataset.kind === "movie" ? state.movieAvail : state.showAvail;
+      var i = list.indexOf(c.dataset.val);
+      if (i === -1) list.push(c.dataset.val); else list.splice(i, 1);
+      update();
+    });
+  });
+  document.getElementById("clear").addEventListener("click", function () {
+    state.q = ""; state.service = ""; state.movieAvail = []; state.showAvail = [];
+    document.getElementById("search").value = ""; svcSel.value = "";
+    update();
+  });
+
+  document.getElementById("todayLbl").textContent = fmtDate(TODAY, true) + (qsToday && ISO_RE.test(qsToday) ? " — overridden via ?today=" : "");
+
+  load(function (data, err) {
+    if (!data) {
+      document.getElementById("main").innerHTML = '<div class="err">Could not load data.json' + (err ? " (" + esc(err.message) + ")" : "") + ".</div>";
+      return;
+    }
+    DATA = { updated: data.updated, movies: data.movies || [], shows: data.shows || [] };
+    document.getElementById("updated").textContent = data.updated ? fmtDate(data.updated, true) : "—";
+    update();
+  });
+})();
+</script>
+</body>
+</html>
