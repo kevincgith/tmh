@@ -121,6 +121,9 @@
   .ribbon { position: absolute; top: 10px; right: 10px; background: #fff; color: #111; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; padding: 3px 7px; border-radius: 6px; }
   .rank { position: absolute; top: 10px; left: 12px; background: rgba(0,0,0,.35); backdrop-filter: blur(4px); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .poster.has-rank { padding-top: 38px; }
+  .thumb { position: absolute; top: 12px; left: 12px; width: 72px; height: 108px; object-fit: cover; border-radius: 8px; background: rgba(0,0,0,.2); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .poster.has-img { min-height: 132px; padding-left: 100px; }
+  .poster.has-img .rank { left: 100px; }
   .body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .badges { display: flex; flex-wrap: wrap; gap: 6px; }
   .badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--neutral-bg); color: var(--muted); white-space: nowrap; }
@@ -377,6 +380,13 @@
     return '<a class="jw" href="' + JUSTWATCH + encodeURIComponent(title) + '" target="_blank" rel="noopener">Where to watch ↗</a>';
   }
 
+  // Optional external poster (https only); if it fails to load, the card falls back to the plain gradient.
+  function posterImg(x) {
+    if (!x.poster || !/^https:\/\//i.test(x.poster)) return "";
+    return '<img class="thumb" src="' + esc(x.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' +
+      ' onerror="this.parentNode.classList.remove(\'has-img\');this.remove()">';
+  }
+
   function step(label, date, sub) {
     var cls = date == null ? "unknown" : future(date) ? "future" : "";
     return '<div class="step ' + cls + '"><div class="k">' + esc(label) + '</div><div class="d">' + esc(fmtDate(date)) + "</div>" +
@@ -396,9 +406,10 @@
     var facts = [];
     if (gross) facts.push("<span><b>" + gross + "</b> worldwide</span>");
     facts.push("<span>In cinemas " + esc(fmtDate(m.theatrical, true)) + "</span>");
-    var st = m.streaming;
+    var st = m.streaming, img = posterImg(m);
     return '<article class="card">' +
-      '<div class="poster" style="background:' + gradient(m.title) + '">' +
+      '<div class="poster' + (img ? " has-img" : "") + '" style="background:' + gradient(m.title) + '">' +
+        img +
         "<h4>" + esc(m.title) + "</h4>" +
         '<div class="sub">' + esc([m.year, m.genre].filter(Boolean).join(" · ")) + "</div>" +
       "</div>" +
@@ -433,9 +444,10 @@
     if (st.key === "airing" && !s.pattern) facts.push("<span>Release pattern unknown</span>");
     if (st.key === "available") facts.push("<span>Premiere date unknown</span>");
     var sub = [seasonLabel(s.season), s.service, s.genre].filter(Boolean).join(" · ");
-    var cr = s.chartRank;
+    var cr = s.chartRank, img = posterImg(s);
     return '<article class="card">' +
-      '<div class="poster' + (cr ? " has-rank" : "") + '" style="background:' + gradient(s.title) + '">' +
+      '<div class="poster' + (cr ? " has-rank" : "") + (img ? " has-img" : "") + '" style="background:' + gradient(s.title) + '">' +
+        img +
         (cr ? '<span class="rank" title="As of ' + esc(fmtDate(cr.asOf, true)) + '">#' + cr.rank + " " + esc(cr.service) + "</span>" : "") +
         (info.isNew ? '<span class="ribbon">NEW</span>' : "") +
         "<h4>" + esc(s.title) + "</h4>" +

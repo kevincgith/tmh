@@ -2,7 +2,7 @@
 
 "What's good to watch?" A static one-page site showing what's hot in movies and TV, and whether each title can be watched at home yet.
 
-- `index.html`: the whole app (HTML/CSS/JS, no build step, no external requests except JustWatch links).
+- `index.html`: the whole app (HTML/CSS/JS, no build step). The only external requests are poster images you add and JustWatch links.
 - `data.json`: all the data. Edit this to update the site.
 - `sync-fallback.py`: optional helper that checks `data.json` and copies it into `index.html` so the page also works when opened straight from disk (`file://`).
 
@@ -65,6 +65,12 @@ How the status is chosen:
 - **Streaming now**: no premiere date, but it has a `chartRank`, so it must be out.
 - **NEW** ribbon: premiered in the last 14 days.
 - A "Next ep (est.)" hint shows only for weekly shows whose episode count or finale is known. It assumes one episode a week from the premiere.
+
+### Posters (optional, movies and shows)
+
+Add `"poster": "https://..."` to any movie or show to show a thumbnail on its card. It must be a direct link to an image file, and only `https://` URLs are used. Leave the field out or set it to `null` to keep the plain gradient card. If an image fails to load (wrong link, or the host blocks hotlinking), the card falls back to the gradient by itself.
+
+To find a poster on TMDB, open the title's page, click the poster, and copy the image address. It looks like `https://image.tmdb.org/t/p/w342/<file>.jpg`; `w342` is a good size for the cards. Images are requested without a referrer.
 
 ### Services
 

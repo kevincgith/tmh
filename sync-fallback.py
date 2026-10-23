@@ -24,7 +24,13 @@ def check(data):
         if v not in SERVICES:
             problems.append(f"{where}: service {v!r} is not one of the filter services")
 
+    def poster(where, v):
+        if v is not None and not (isinstance(v, str) and v.startswith("https://")):
+            problems.append(f"{where}: poster must be an https:// image URL or null")
+
     date("updated", data.get("updated"))
+    for item in data.get("movies", []) + data.get("shows", []):
+        poster(f"{item.get('title', '?')}.poster", item.get("poster"))
     for m in data.get("movies", []):
         t = m.get("title", "?")
         for k in ("theatrical", "digital", "physical"):
