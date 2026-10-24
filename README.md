@@ -92,7 +92,22 @@ Tap **＋ Interested** on a title's detail panel, or on the featured title, to s
 
 Tap **Mark watched** to hide a title. It disappears from every row, the Interested row and the featured spot. It's parked in a collapsed **Watched** section at the bottom of the page; open that section and tap a title to un-mark it. Watched picks are stored the same way, under the key `tmh-watched`. A title can be both Interested and Watched. Un-marking it as watched puts it back in the Interested row.
 
-When no search or filter is active, a featured title sits at the top. It's the first "Watch now" title under the current sort: movies on the All and Movies tabs, shows on the Shows tab.
+When no search or filter is active (or only My services), a featured title sits at the top. It's the first "Watch now" title under the current sort: movies on the All and Movies tabs, shows on the Shows tab.
+
+**New this week** lists movies that came home (digital, streaming or 4K/Blu-ray) and shows that premiered in the last 7 days, newest first. It's hidden while an availability chip is on.
+
+**🎲 Surprise me** (top right) opens a random title you can watch at home today. It follows the current tab and service filter, skips anything marked watched, and never picks the same title twice in a row. With a service filter on, a movie only counts if it is streaming on that service today. Tap **Pick another** for a new pick.
+
+**My services…** lets you tick the services you subscribe to (saved under `tmh-services`). Once set, the page opens filtered to "My services"; Clear filters shows everything.
+
+**Calendar** tab: every dated release step (US cinemas, digital, streaming, 4K/Blu-ray, premieres, finales) from a week ago to 60 days ahead, grouped by day. **＋ Cal**, and **📅 Remind me** on a detail panel, download an all-day `.ics` file you open to add the date to your own calendar. "✓ Interested only" narrows the calendar to your picks.
+
+**Sharing:** opening a title puts it in the URL (for example `#m/Toy%20Story%205`), so the link opens straight to that title. **Share** on the detail panel uses the phone's share sheet, or copies the link on desktop. Press `/` to jump to search.
+
+## Daily refresh
+
+- **In the page:** statuses are worked out from today's date. An open page re-renders by itself when the local day rolls over. It also re-checks `data.json` hourly and whenever you switch back to the tab, then shows a "New listings loaded" notice if anything changed. The header shows how old the data is; after 3 days it turns amber.
+- **The data:** see "Scheduled data refresh" below.
 
 ## Sorting
 

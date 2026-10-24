@@ -80,7 +80,10 @@
     .controls { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--border); }
     :root[data-theme="dark"] .controls { background: rgba(14, 15, 19, .9); backdrop-filter: blur(10px); }
   }
-  .row { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .head-actions { display: flex; gap: 8px; flex: none; }
+  #fresh.stale { color: var(--warn); font-weight: 600; }
+  .linkbtn { border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 2px; }
   /* One strip of sort/service/chips: scrolls sideways on phones, wraps on wider screens. */
   .filterbar {
     display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 10px calc(-1 * var(--gutter)) 0;
@@ -100,7 +103,7 @@
   @media (min-width: 768px) { .tabs button { padding: 6px 16px; } }
   .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
   .search {
-    flex: 1 1 auto; min-width: 0; width: 100%; max-width: 420px; height: 38px; padding: 0 14px; border-radius: 999px;
+    flex: 1 1 200px; min-width: 0; max-width: 420px; height: 38px; padding: 0 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--surface);
   }
   .search:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -197,6 +200,55 @@
   .toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
   .toggle[data-toggle="watched"][aria-pressed="true"] { background: var(--ok-bg); color: var(--ok); }
   .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Surprise banner in the detail panel */
+  .surprise-bar {
+    display: flex; align-items: center; gap: 10px; padding: 10px 56px 10px 16px; background: var(--surface-2);
+    border-radius: 16px 16px 0 0; font-weight: 700; font-size: 14px;
+  }
+  .surprise-bar + .card { border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; }
+
+  /* Calendar tab */
+  .agenda { margin-top: 22px; }
+  .agenda > h2 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
+  .day { margin-top: 20px; max-width: 760px; }
+  .day > h3 { margin: 0 0 8px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .day.today > h3 { color: var(--accent); }
+  .day.past { opacity: .62; }
+  .ev { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 8px; margin-top: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+  .ev-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; padding: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+  .ev-art { flex: none; position: relative; width: 40px; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; }
+  .ev-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ev-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .ev-t { font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev-mark { color: var(--accent); font-weight: 900; }
+  .ev-s { font-size: 12.5px; color: var(--muted); }
+  .ev-s::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--muted); }
+  .ev-s.ok::before { background: var(--ok); }
+  .ev-s.info::before { background: var(--info); }
+  .ev-s.warn::before { background: var(--warn); }
+  .ev .ics-btn { flex: none; padding: 6px 10px; font-size: 12.5px; }
+
+  /* My services */
+  dialog#svcDlg { border: 0; padding: 0; border-radius: 16px; background: var(--surface); color: var(--text); width: min(420px, calc(100vw - 24px)); }
+  dialog#svcDlg::backdrop { background: rgba(0,0,0,.62); backdrop-filter: blur(3px); }
+  .svc-panel { padding: 18px; }
+  .svc-panel h3 { margin: 0 0 4px; font-size: 19px; }
+  .svc-panel .small { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .svc-opt { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 14px; }
+  .svc-opt:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .svc-opt input { accent-color: var(--accent); }
+  .svc-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 60; max-width: calc(100vw - 32px);
+    transform: translate(-50%, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* Watched: collapsed section at the bottom */
   .watched-box { margin-top: 34px; border-top: 1px solid var(--border); padding-top: 14px; }
@@ -305,9 +357,12 @@
       <h1>TMH<span>.</span></h1>
       <p class="zh" lang="zh-HK">睇咩好？</p>
     </div>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to light mode" title="Toggle light/dark">☀︎</button>
+    <div class="head-actions">
+      <button class="theme-btn" id="surpriseBtn" type="button" aria-label="Surprise me: pick something to watch" title="Surprise me">🎲</button>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to light mode" title="Toggle light/dark">☀︎</button>
+    </div>
   </header>
-  <p class="meta-line">Updated <strong id="updated">—</strong> · All dates are US releases; Hong Kong availability may differ.</p>
+  <p class="meta-line">Updated <strong id="updated">—</strong><span id="fresh"></span> · All dates are US releases; Hong Kong availability may differ.</p>
 
   <div class="controls" id="controls">
     <div class="row">
@@ -315,11 +370,12 @@
         <button role="tab" data-tab="all" aria-selected="true">All</button>
         <button role="tab" data-tab="movies" aria-selected="false">Movies</button>
         <button role="tab" data-tab="shows" aria-selected="false">Shows</button>
+        <button role="tab" data-tab="calendar" aria-selected="false">Calendar</button>
       </div>
       <input class="search" id="search" type="search" placeholder="Search" aria-label="Search titles" autocomplete="off">
     </div>
     <div class="filterbar">
-      <label class="sel">Sort
+      <label class="sel" id="sortWrap">Sort
         <select id="sort">
           <option value="hot">Hot</option>
           <option value="newest">Newest</option>
@@ -327,7 +383,9 @@
         </select>
       </label>
       <select id="service" aria-label="Service"><option value="">All services</option></select>
+      <button class="linkbtn" id="mySvcBtn" type="button">My services…</button>
       <span class="sep" aria-hidden="true"></span>
+      <button class="chip" id="calChip" type="button" aria-pressed="false" hidden>✓ Interested only</button>
       <div class="chip-group" id="movieChips">
         <span class="lbl">Movies</span>
         <button class="chip" data-kind="movie" data-val="streaming" aria-pressed="false">Streaming</button>
@@ -351,6 +409,20 @@
     <div id="detailBody"></div>
   </dialog>
 
+  <dialog id="svcDlg" aria-labelledby="svcTitle">
+    <div class="svc-panel">
+      <h3 id="svcTitle">My services</h3>
+      <p class="small">Tick the services you pay for. TMH can then show just what you can watch. Saved in this browser only.</p>
+      <div class="svc-grid" id="svcGrid"></div>
+      <div class="svc-foot">
+        <button class="btn ghost" id="svcCancel" type="button">Cancel</button>
+        <button class="btn primary" id="svcDone" type="button">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <footer>
     <p>Status is computed from today's date (<span id="todayLbl"></span>) against the release dates in <code>data.json</code>. Availability links go to JustWatch Hong Kong search.</p>
   </footer>
@@ -372,7 +444,14 @@
   function localISO(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
   var qsToday = new URLSearchParams(location.search).get("today");
-  var TODAY = qsToday && ISO_RE.test(qsToday) ? qsToday : localISO(new Date());
+  var TODAY_FIXED = !!(qsToday && ISO_RE.test(qsToday));
+  // Not constant: rolls over at local midnight while the page is open (see "daily refresh").
+  var TODAY = TODAY_FIXED ? qsToday : localISO(new Date());
+  var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  function utc(iso) { var p = iso.split("-").map(Number); return Date.UTC(p[0], p[1] - 1, p[2]); }
+  function weekday(iso) { return WEEKDAYS[new Date(utc(iso)).getUTCDay()]; }
+  function daysBetween(a, b) { return Math.round((utc(b) - utc(a)) / 864e5); }
 
   function addDays(iso, n) {
     var p = iso.split("-").map(Number);
@@ -472,7 +551,7 @@
   }
 
   // ---------- state ----------
-  var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [], watchedOpen: false };
+  var state = { tab: "all", q: "", sort: "hot", service: "", movieAvail: [], showAvail: [], watchedOpen: false, calInterested: false };
 
   // ---------- saved picks (this browser only) ----------
   // Each list is stored as "m:<title>" / "s:<title>" keys, in the order they were added.
@@ -504,24 +583,139 @@
       '" data-i="' + i + '" aria-pressed="' + on + '">' + (on ? t.on : t.off) + "</button>";
   }
   function detailActions(x) {
+    var next = titleEvents(x.kind, x.m).filter(function (e) { return future(e.date); })
+      .sort(function (a, b) { return cmpAsc(a.date, b.date); })[0];
     return '<div class="detail-actions">' + toggleBtn("interest", x.kind, x.i, x.m, "ghost") +
-      toggleBtn("watched", x.kind, x.i, x.m, "ghost") + "</div>";
+      toggleBtn("watched", x.kind, x.i, x.m, "ghost") +
+      (next ? icsBtn(x.kind, x.i, next, "📅 Remind me · " + fmtDate(next.date)) : "") +
+      '<button class="btn ghost share-btn" type="button">Share</button></div>';
   }
+
+  // "My services": the subscriptions this viewer has, saved in this browser. Selected via the "__mine" service filter.
+  var MINE = "__mine";
+  var myServices = (function () {
+    var list = [];
+    try {
+      list = (JSON.parse(localStorage.getItem("tmh-services")) || []).filter(function (s) { return SERVICES.indexOf(s) !== -1; });
+    } catch (e) {}
+    return {
+      list: function () { return list.slice(); },
+      set: function (l) { list = l.slice(); try { localStorage.setItem("tmh-services", JSON.stringify(list)); } catch (e) {} }
+    };
+  })();
+  function svcOk(kind, m, info) {
+    var want = state.service === MINE ? myServices.list() : state.service ? [state.service] : null;
+    if (!want) return true;
+    var have = kind === "m" ? info.services : [m.service];
+    return have.some(function (s) { return want.indexOf(s) !== -1; });
+  }
+
   var DATA = null;
 
+  // cb(data, error, rawText). rawText lets the daily refresh tell whether data.json actually changed.
   function load(cb) {
     function fallback() {
       try {
         var d = JSON.parse(document.getElementById("tmh-fallback").textContent);
         if (!d.movies) throw new Error("empty fallback");
-        cb(d);
+        cb(d, null, "");
       } catch (e) { cb(null, e); }
     }
     if (location.protocol === "file:") return fallback();
     fetch("data.json", { cache: "no-cache" })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { cb(d); })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (raw) { cb(JSON.parse(raw), null, raw); })
       .catch(fallback);
+  }
+
+  // ---------- release events (calendar + reminders) ----------
+  // Every dated release step for a title. All dates are US.
+  function titleEvents(kind, m) {
+    var ev = [];
+    if (kind === "m") {
+      if (m.theatrical) ev.push({ date: m.theatrical, label: "In US cinemas", cls: "warn" });
+      if (m.digital) ev.push({ date: m.digital, label: "Digital (buy/rent)", cls: "ok" });
+      [m.streaming].concat(m.alsoStreaming || []).forEach(function (s) {
+        if (s && s.date) ev.push({ date: s.date, label: "Streaming on " + s.service, cls: "ok" });
+      });
+      if (m.physical) ev.push({ date: m.physical, label: "4K/Blu-ray", cls: "ok" });
+    } else {
+      var sl = seasonLabel(m.season);
+      if (m.premiere) ev.push({ date: m.premiere, label: (sl ? sl + " premieres" : "Premieres") + " on " + m.service, cls: "info" });
+      if (m.finale) ev.push({ date: m.finale, label: "Finale on " + m.service, cls: "info" });
+    }
+    return ev;
+  }
+  function homeDates(m) {
+    return [m.digital, m.physical].concat([m.streaming].concat(m.alsoStreaming || []).map(function (s) { return s && s.date; }));
+  }
+
+  function icsBtn(kind, i, e, text) {
+    return '<button class="btn ghost ics-btn" type="button" data-kind="' + kind + '" data-i="' + i + '" data-date="' + e.date +
+      '" data-label="' + esc(e.label) + '" title="Save a calendar reminder: ' + esc(e.label) + ", " + esc(fmtDate(e.date, true)) + '">' +
+      esc(text) + "</button>";
+  }
+  function icsText(s) { return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+  function icsFold(line) {
+    var out = [];
+    while (line.length > 73) { out.push(line.slice(0, 73)); line = " " + line.slice(73); }
+    out.push(line);
+    return out.join("\r\n");
+  }
+  // All-day event file the viewer opens to add to their own calendar app; nothing leaves the browser.
+  function downloadIcs(kind, m, e) {
+    var slug = (m.title + "-" + e.label).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+    var lines = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TMH//What's good to watch//EN", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+      "UID:" + kind + "-" + slug + "-" + e.date + "@tmh",
+      "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+      "DTSTART;VALUE=DATE:" + e.date.replace(/-/g, ""),
+      "DTEND;VALUE=DATE:" + addDays(e.date, 1).replace(/-/g, ""),
+      "SUMMARY:" + icsText(m.title + " — " + e.label),
+      "DESCRIPTION:" + icsText("US release date from TMH. Hong Kong availability may differ."),
+      "END:VEVENT", "END:VCALENDAR"
+    ];
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.map(icsFold).join("\r\n") + "\r\n"], { type: "text/calendar;charset=utf-8" }));
+    a.download = slug + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function onIcs(btn) {
+    var kind = btn.dataset.kind, m = kind === "m" ? DATA.movies[Number(btn.dataset.i)] : DATA.shows[Number(btn.dataset.i)];
+    var e = titleEvents(kind, m).filter(function (ev) { return ev.date === btn.dataset.date && ev.label === btn.dataset.label; })[0];
+    if (!e) return;
+    downloadIcs(kind, m, e);
+    toast("Reminder downloaded. Open it to add to your calendar");
+  }
+
+  // ---------- small UI helpers ----------
+  var toastTimer = null;
+  function toast(msg) {
+    var t = document.getElementById("toast"), dlgOpen = document.querySelector("dialog[open]");
+    // A modal dialog sits in the top layer, so the toast must live inside it to be seen.
+    (dlgOpen || document.body).appendChild(t);
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 3200);
+  }
+  function copyText(s) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(s);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = s; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      (document.querySelector("dialog[open]") || document.body).appendChild(ta);
+      ta.select();
+      try { if (document.execCommand("copy")) resolve(); else reject(); } catch (e) { reject(e); }
+      ta.remove();
+    });
+  }
+  function shareCurrent() {
+    var h = document.querySelector("#detailBody h4"), title = (h ? h.textContent : "TMH") + " · TMH", url = location.href;
+    if (navigator.share) { navigator.share({ title: title, url: url }).catch(function () {}); return; }
+    copyText(url).then(function () { toast("Link copied"); }, function () { toast("Couldn't copy. The link is in the address bar"); });
   }
 
   // ---------- sorting ----------
@@ -731,22 +925,61 @@
     body.querySelector(".next").disabled = sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 2;
   }
 
-  function openDetail(kind, i) {
+  function openDetail(kind, i, isSurprise) {
     var m = kind === "m" ? DATA.movies[i] : DATA.shows[i];
+    if (!m) return;
     var x = { m: m, i: i, kind: kind, info: kind === "m" ? movieInfo(m) : showInfo(m) };
-    document.getElementById("detailBody").innerHTML = kind === "m" ? movieCard(x) : showCard(x);
+    document.getElementById("detailBody").innerHTML =
+      (isSurprise ? '<div class="surprise-bar"><span>🎲 Random pick</span>' +
+        '<button class="btn ghost" type="button" id="againBtn">Pick another</button></div>' : "") +
+      (kind === "m" ? movieCard(x) : showCard(x));
+    // The URL names the open title so it can be shared or bookmarked.
+    try { history.replaceState(null, "", "#" + kind + "/" + encodeURIComponent(m.title)); } catch (e) {}
     var dlg = document.getElementById("detail");
-    if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+    if (!dlg.open) { if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", ""); }
+    dlg.scrollTop = 0;
+  }
+
+  function openFromHash() {
+    var mt = /^#([ms])\/(.+)$/.exec(location.hash);
+    if (!mt || !DATA) return;
+    var title;
+    try { title = decodeURIComponent(mt[2]); } catch (e) { return; }
+    var list = mt[1] === "m" ? DATA.movies : DATA.shows;
+    for (var i = 0; i < list.length; i++) if (list[i].title === title) return openDetail(mt[1], i);
+  }
+
+  // Random title you can watch at home now: respects the tab and service filter, skips watched titles.
+  var lastPick = "";
+  function surprise() {
+    if (!DATA) return;
+    var want = state.service === MINE ? myServices.list() : state.service ? [state.service] : null, pool = [];
+    if (state.tab !== "shows") DATA.movies.forEach(function (m, i) {
+      var info = movieInfo(m);
+      if (!info.watchNow || watched.has("m", m)) return;
+      // With a service filter, a movie only counts if it is streaming there today.
+      if (want && !info.live.some(function (s) { return want.indexOf(s.service) !== -1; })) return;
+      pool.push("m:" + i);
+    });
+    if (state.tab !== "movies") DATA.shows.forEach(function (s, i) {
+      if (!showInfo(s).watchNow || watched.has("s", s) || (want && want.indexOf(s.service) === -1)) return;
+      pool.push("s:" + i);
+    });
+    if (pool.length > 1) pool = pool.filter(function (p) { return p !== lastPick; });
+    if (!pool.length) return toast("Nothing to pick from. Try another tab or service");
+    lastPick = pool[Math.floor(Math.random() * pool.length)];
+    openDetail(lastPick.charAt(0), Number(lastPick.slice(2)), true);
   }
 
   function matchesQuery(t) { return !state.q || t.toLowerCase().indexOf(state.q) !== -1; }
 
   function render() {
+    if (state.tab === "calendar") return setMain(renderCalendar());
     var html = "", mNow = [], sNow = [];
     if (state.tab !== "shows") {
       var movies = DATA.movies.map(function (m, i) { return { m: m, i: i, info: movieInfo(m) }; }).filter(function (x) {
         if (watched.has("m", x.m) || !matchesQuery(x.m.title)) return false;
-        if (state.service && x.info.services.indexOf(state.service) === -1) return false;
+        if (!svcOk("m", x.m, x.info)) return false;
         if (state.movieAvail.length && !state.movieAvail.some(function (k) { return x.info.avail[k]; })) return false;
         return true;
       });
@@ -758,7 +991,7 @@
     if (state.tab !== "movies") {
       var shows = DATA.shows.map(function (s, i) { return { m: s, i: i, info: showInfo(s) }; }).filter(function (x) {
         if (watched.has("s", x.m) || !matchesQuery(x.m.title)) return false;
-        if (state.service && x.m.service !== state.service) return false;
+        if (!svcOk("s", x.m, x.info)) return false;
         if (state.showAvail.length && state.showAvail.indexOf(x.info.status.group) === -1) return false;
         return true;
       });
@@ -767,9 +1000,15 @@
         rail("Coming soon", sortShows(shows.filter(function (x) { return !x.info.watchNow; }), true), "s", "s-soon") +
         "</section>";
     }
-    // Interested row: saved, not-yet-watched titles (newest first), narrowed by search and service only.
+    // Above the main rows: Interested (saved, not yet watched) then New this week.
+    var top = "";
     var mine = savedItems(interested).filter(function (x) { return !watched.has(x.kind, x.m); });
-    if (mine.length) html = '<section class="type-section mine">' + rail("Interested", mine, null, "mine") + "</section>" + html;
+    if (mine.length) top += '<section class="type-section mine">' + rail("Interested", mine, null, "mine") + "</section>";
+    if (!state.movieAvail.length && !state.showAvail.length) {
+      var fresh = newItems();
+      if (fresh.length) top += '<section class="type-section">' + rail("New this week", fresh, null, "new") + "</section>";
+    }
+    html = top + html;
 
     // Watched titles are hidden everywhere else and parked in a collapsed section at the bottom.
     var seen = savedItems(watched);
@@ -779,11 +1018,17 @@
         rail(null, seen, null, "watched") + "</details>";
     }
 
-    var filtered = state.q || state.service || state.movieAvail.length || state.showAvail.length;
+    // The featured title stays under "My services" (it's picked from the filtered rows) but hides for other filters.
+    var filtered = state.q || (state.service && state.service !== MINE) || state.movieAvail.length || state.showAvail.length;
     if (!filtered) {
       if (state.tab === "shows" && sNow.length) html = hero("s", sNow[0]) + html;
       else if (state.tab !== "shows" && mNow.length) html = hero("m", mNow[0]) + html;
     }
+    setMain(html);
+  }
+
+  // Swap in new content, keeping each row's sideways scroll position.
+  function setMain(html) {
     var main = document.getElementById("main"), scrollPos = {};
     main.querySelectorAll(".scroller").forEach(function (sc) { scrollPos[sc.dataset.key] = sc.scrollLeft; });
     main.innerHTML = html;
@@ -806,12 +1051,78 @@
       for (var i = 0; i < list.length; i++) {
         if (list[i].title !== title) continue;
         var m = list[i], info = kind === "m" ? movieInfo(m) : showInfo(m);
-        var svcOk = !state.service || (kind === "m" ? info.services.indexOf(state.service) !== -1 : m.service === state.service);
-        if (matchesQuery(m.title) && svcOk) out.push({ m: m, i: i, info: info, kind: kind });
+        if (matchesQuery(m.title) && svcOk(kind, m, info)) out.push({ m: m, i: i, info: info, kind: kind });
         break;
       }
     });
     return out;
+  }
+
+  // Came home (movies) or premiered (shows) in the last 7 days, today included. Newest first.
+  function newItems() {
+    var from = addDays(TODAY, -6), out = [];
+    [["m", DATA.movies], ["s", DATA.shows]].forEach(function (pair) {
+      var kind = pair[0];
+      if ((kind === "m" && state.tab === "shows") || (kind === "s" && state.tab === "movies")) return;
+      pair[1].forEach(function (m, i) {
+        if (watched.has(kind, m) || !matchesQuery(m.title)) return;
+        var info = kind === "m" ? movieInfo(m) : showInfo(m);
+        if (!svcOk(kind, m, info)) return;
+        var hit = (kind === "m" ? homeDates(m) : [m.premiere])
+          .filter(function (d) { return d && d >= from && d <= TODAY; }).sort().pop();
+        if (hit) out.push({ m: m, i: i, info: info, kind: kind, when: hit });
+      });
+    });
+    return out.sort(function (a, b) { return cmpDesc(a.when, b.when) || a.m.title.localeCompare(b.m.title); });
+  }
+
+  // Calendar tab: every dated release step from a week ago to 60 days ahead, grouped by day.
+  function renderCalendar() {
+    var from = addDays(TODAY, -7), to = addDays(TODAY, 60), rows = [];
+    [["m", DATA.movies], ["s", DATA.shows]].forEach(function (pair) {
+      var kind = pair[0];
+      pair[1].forEach(function (m, i) {
+        if (watched.has(kind, m) || !matchesQuery(m.title)) return;
+        if (state.calInterested && !interested.has(kind, m)) return;
+        var info = kind === "m" ? movieInfo(m) : showInfo(m);
+        if (!svcOk(kind, m, info)) return;
+        titleEvents(kind, m).forEach(function (e) {
+          if (e.date >= from && e.date <= to) rows.push({ kind: kind, i: i, m: m, e: e });
+        });
+      });
+    });
+    rows.sort(function (a, b) { return cmpAsc(a.e.date, b.e.date) || a.m.title.localeCompare(b.m.title); });
+    var html = '<section class="agenda"><h2>Release calendar</h2>' +
+      '<p class="meta-line">US dates, from a week ago to 60 days ahead. Tap ＋ Cal to save a reminder to your own calendar.</p>';
+    if (!rows.length) return html + '<div class="empty">Nothing scheduled in this window.</div></section>';
+    var day = null;
+    rows.forEach(function (r) {
+      if (r.e.date !== day) {
+        if (day) html += "</div>";
+        day = r.e.date;
+        var diff = daysBetween(TODAY, day);
+        var rel = diff === 0 ? "Today · " : diff === 1 ? "Tomorrow · " : diff === -1 ? "Yesterday · " : "";
+        html += '<div class="day' + (diff < 0 ? " past" : diff === 0 ? " today" : "") + '"><h3>' +
+          esc(rel + weekday(day) + " " + fmtDate(day)) + "</h3>";
+      }
+      html += eventRow(r);
+    });
+    return html + "</div></section>";
+  }
+
+  function eventRow(r) {
+    var m = r.m, url = posterUrl(m), on = interested.has(r.kind, m);
+    return '<div class="ev">' +
+      '<button class="ev-open" type="button" data-kind="' + r.kind + '" data-i="' + r.i + '">' +
+        '<span class="ev-art" style="background:' + gradient(m.title) + '">' +
+          (url ? '<img src="' + esc(url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
+        "</span>" +
+        '<span class="ev-text"><span class="ev-t">' + esc(m.title) +
+          (on ? ' <span class="ev-mark" title="Interested">✓</span>' : "") + "</span>" +
+          '<span class="ev-s ' + r.e.cls + '">' + esc(r.e.label) + "</span></span>" +
+      "</button>" +
+      (future(r.e.date) ? icsBtn(r.kind, r.i, r.e, "＋ Cal") : "") +
+      "</div>";
   }
 
   function onToggle(btn) {
@@ -828,15 +1139,29 @@
 
   function syncControls() {
     document.querySelectorAll("[role=tab]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)); });
-    document.getElementById("movieChips").hidden = state.tab === "shows";
-    document.getElementById("showChips").hidden = state.tab === "movies";
+    var cal = state.tab === "calendar";
+    document.getElementById("sortWrap").hidden = cal;
+    document.getElementById("movieChips").hidden = cal || state.tab === "shows";
+    document.getElementById("showChips").hidden = cal || state.tab === "movies";
+    document.getElementById("calChip").hidden = !cal;
+    document.getElementById("calChip").setAttribute("aria-pressed", String(state.calInterested));
     document.getElementById("recentOpt").textContent =
       state.tab === "movies" ? "Recently came home" : state.tab === "shows" ? "Recently premiered" : "Recently released";
-    document.querySelectorAll(".chip").forEach(function (c) {
+    document.querySelectorAll(".chip[data-kind]").forEach(function (c) {
       var list = c.dataset.kind === "movie" ? state.movieAvail : state.showAvail;
       c.setAttribute("aria-pressed", String(list.indexOf(c.dataset.val) !== -1));
     });
-    document.getElementById("clear").hidden = !(state.q || state.service || state.movieAvail.length || state.showAvail.length);
+    document.getElementById("clear").hidden =
+      !(state.q || state.service || state.movieAvail.length || state.showAvail.length || state.calInterested);
+  }
+
+  function buildServiceOptions() {
+    var mine = myServices.list(), sel = document.getElementById("service");
+    if (state.service === MINE && !mine.length) state.service = "";
+    sel.innerHTML = '<option value="">All services</option>' +
+      (mine.length ? '<option value="' + MINE + '">My services (' + mine.length + ")</option>" : "") +
+      SERVICES.map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + "</option>"; }).join("");
+    sel.value = state.service;
   }
 
   function update() { syncControls(); render(); }
@@ -858,7 +1183,9 @@
 
   // ---------- events ----------
   var svcSel = document.getElementById("service");
-  SERVICES.forEach(function (s) { var o = document.createElement("option"); o.value = s; o.textContent = s; svcSel.appendChild(o); });
+  // Once My services is set up, open filtered to them; "Clear filters" shows everything again.
+  if (myServices.list().length) state.service = MINE;
+  buildServiceOptions();
 
   document.querySelectorAll("[role=tab]").forEach(function (b) {
     b.addEventListener("click", function () { state.tab = b.dataset.tab; update(); });
@@ -866,7 +1193,7 @@
   document.getElementById("search").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); update(); });
   document.getElementById("sort").addEventListener("change", function (e) { state.sort = e.target.value; update(); });
   svcSel.addEventListener("change", function (e) { state.service = e.target.value; update(); });
-  document.querySelectorAll(".chip").forEach(function (c) {
+  document.querySelectorAll(".chip[data-kind]").forEach(function (c) {
     c.addEventListener("click", function () {
       var list = c.dataset.kind === "movie" ? state.movieAvail : state.showAvail;
       var i = list.indexOf(c.dataset.val);
@@ -878,7 +1205,9 @@
   main.addEventListener("click", function (e) {
     var tb = e.target.closest(".toggle");
     if (tb) return onToggle(tb);
-    var t = e.target.closest(".tile, .hero-more");
+    var ic = e.target.closest(".ics-btn");
+    if (ic) return onIcs(ic);
+    var t = e.target.closest(".tile, .hero-more, .ev-open");
     if (t) return openDetail(t.dataset.kind, Number(t.dataset.i));
     var a = e.target.closest(".arrow");
     if (a) {
@@ -892,7 +1221,11 @@
   window.addEventListener("resize", function () { main.querySelectorAll(".rail-body").forEach(updateArrows); });
   document.getElementById("detailBody").addEventListener("click", function (e) {
     var tb = e.target.closest(".toggle");
-    if (tb) onToggle(tb);
+    if (tb) return onToggle(tb);
+    var ic = e.target.closest(".ics-btn");
+    if (ic) return onIcs(ic);
+    if (e.target.closest(".share-btn")) return shareCurrent();
+    if (e.target.closest("#againBtn")) return surprise();
   });
   // Remember whether the Watched section is open across re-renders; arrows need measuring once it is visible.
   main.addEventListener("toggle", function (e) {
@@ -900,25 +1233,126 @@
     state.watchedOpen = e.target.open;
     e.target.querySelectorAll(".rail-body").forEach(updateArrows);
   }, true);
-  document.getElementById("closeDetail").addEventListener("click", function () { dlg.close(); });
-  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  // Runs on every way of closing (button, backdrop, Esc). The "close" event alone can arrive late, so call it directly too.
+  function detailClosed() {
+    if (location.hash) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+    if (pendingRaw) applyRaw(pendingRaw);
+  }
+  function closeDetail() { if (dlg.open) dlg.close(); detailClosed(); }
+  document.getElementById("closeDetail").addEventListener("click", closeDetail);
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) closeDetail(); });
+  dlg.addEventListener("cancel", detailClosed);
+  dlg.addEventListener("close", detailClosed);
+  window.addEventListener("hashchange", openFromHash);
+
+  document.getElementById("surpriseBtn").addEventListener("click", surprise);
+  document.getElementById("calChip").addEventListener("click", function () { state.calInterested = !state.calInterested; update(); });
+
+  // My services dialog
+  var svcDlg = document.getElementById("svcDlg"), svcGrid = document.getElementById("svcGrid");
+  document.getElementById("mySvcBtn").addEventListener("click", function () {
+    var mine = myServices.list();
+    svcGrid.innerHTML = SERVICES.map(function (s) {
+      return '<label class="svc-opt"><input type="checkbox" value="' + esc(s) + '"' +
+        (mine.indexOf(s) !== -1 ? " checked" : "") + "> " + esc(s) + "</label>";
+    }).join("");
+    svcDlg.showModal();
+  });
+  document.getElementById("svcCancel").addEventListener("click", function () { svcDlg.close(); });
+  svcDlg.addEventListener("click", function (e) { if (e.target === svcDlg) svcDlg.close(); });
+  document.getElementById("svcDone").addEventListener("click", function () {
+    var picked = Array.prototype.map.call(svcGrid.querySelectorAll("input:checked"), function (i) { return i.value; });
+    myServices.set(picked);
+    if (picked.length) state.service = MINE;
+    else if (state.service === MINE) state.service = "";
+    buildServiceOptions();
+    svcDlg.close();
+    update();
+    toast(picked.length ? "Showing what's on your " + picked.length + " service" + (picked.length > 1 ? "s" : "") : "My services cleared");
+  });
+
+  // "/" jumps to search, as on many sites.
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "")) return;
+    e.preventDefault();
+    document.getElementById("search").focus();
+  });
 
   document.getElementById("clear").addEventListener("click", function () {
-    state.q = ""; state.service = ""; state.movieAvail = []; state.showAvail = [];
+    state.q = ""; state.service = ""; state.movieAvail = []; state.showAvail = []; state.calInterested = false;
     document.getElementById("search").value = ""; svcSel.value = "";
     update();
   });
 
-  document.getElementById("todayLbl").textContent = fmtDate(TODAY, true) + (qsToday && ISO_RE.test(qsToday) ? " — overridden via ?today=" : "");
+  // ---------- daily refresh ----------
+  // Statuses are computed from today's date, so an open page re-renders when the local day rolls over.
+  // data.json is re-checked hourly and whenever the tab comes back into view, so new listings show up without a reload.
+  var rawData = "", lastFetch = 0, pendingRaw = null;
 
-  load(function (data, err) {
+  function setTodayLabel() {
+    document.getElementById("todayLbl").textContent = fmtDate(TODAY, true) + (TODAY_FIXED ? " — overridden via ?today=" : "");
+  }
+  function showFreshness() {
+    var el = document.getElementById("fresh");
+    document.getElementById("updated").textContent = DATA.updated ? fmtDate(DATA.updated, true) : "—";
+    if (!DATA.updated || !ISO_RE.test(DATA.updated)) { el.textContent = ""; return; }
+    var d = daysBetween(DATA.updated, TODAY);
+    el.textContent = d <= 0 ? " (today)" : d === 1 ? " (yesterday)" : " (" + d + " days ago)";
+    el.className = d > 3 ? "stale" : "";
+    el.title = d > 3 ? "Listings haven't been refreshed for a few days, so some dates or chart ranks may be out of date." : "";
+  }
+  function applyData(data, raw) {
+    DATA = { updated: data.updated, movies: data.movies || [], shows: data.shows || [] };
+    rawData = raw || "";
+    pendingRaw = null;
+    showFreshness();
+  }
+  function applyRaw(raw) {
+    var d;
+    try { d = JSON.parse(raw); } catch (e) { pendingRaw = null; return; }
+    if (!d || !Array.isArray(d.movies) || !Array.isArray(d.shows)) { pendingRaw = null; return; }
+    applyData(d, raw);
+    update();
+    toast("New listings loaded (updated " + fmtDate(d.updated, true) + ")");
+  }
+  function refetch() {
+    if (location.protocol === "file:") return;
+    lastFetch = Date.now();
+    fetch("data.json", { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (raw) {
+        if (!raw || raw === rawData) return;
+        // Don't swap data under an open detail panel (indexes may shift); apply when it closes.
+        if (dlg.open) pendingRaw = raw; else applyRaw(raw);
+      })
+      .catch(function () {});
+  }
+  function tick() {
+    if (!DATA) return;
+    var now = localISO(new Date());
+    if (!TODAY_FIXED && now !== TODAY) {
+      TODAY = now;
+      setTodayLabel();
+      showFreshness();
+      update();
+    }
+    if (Date.now() - lastFetch > 60 * 60 * 1000) refetch();
+  }
+  setInterval(tick, 60 * 1000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
+
+  setTodayLabel();
+
+  load(function (data, err, raw) {
     if (!data) {
       document.getElementById("main").innerHTML = '<div class="err">Could not load data.json' + (err ? " (" + esc(err.message) + ")" : "") + ".</div>";
       return;
     }
-    DATA = { updated: data.updated, movies: data.movies || [], shows: data.shows || [] };
-    document.getElementById("updated").textContent = data.updated ? fmtDate(data.updated, true) : "—";
+    applyData(data, raw);
+    lastFetch = Date.now();
     update();
+    openFromHash();
   });
 })();
 </script>
