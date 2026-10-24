@@ -29,6 +29,7 @@ def check(data):
             problems.append(f"{where}: poster must be an https:// image URL or null")
 
     date("updated", data.get("updated"))
+    date("autoUpdated", data.get("autoUpdated"))
     for item in data.get("movies", []) + data.get("shows", []):
         poster(f"{item.get('title', '?')}.poster", item.get("poster"))
     for m in data.get("movies", []):
@@ -54,6 +55,11 @@ def check(data):
             date(f"{t}.chartRank.asOf", cr.get("asOf"))
             if not isinstance(cr.get("rank"), int):
                 problems.append(f"{t}.chartRank.rank: must be an integer")
+            if "chart" in cr and not isinstance(cr["chart"], str):
+                problems.append(f"{t}.chartRank.chart: must be text")
+        date(f"{t}.lastCharted", s.get("lastCharted"))
+        if s.get("source") not in (None, "netflix-top10"):
+            problems.append(f"{t}.source: unknown value {s.get('source')!r}")
     return problems
 
 

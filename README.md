@@ -107,24 +107,23 @@ When no search or filter is active (or only My services), a featured title sits 
 ## Daily refresh
 
 - **In the page:** statuses are worked out from today's date. An open page re-renders by itself when the local day rolls over. It also re-checks `data.json` hourly and whenever you switch back to the tab, then shows a "New listings loaded" notice if anything changed. The header shows how old the data is; after 3 days it turns amber.
-- **The data:** see "Scheduled data refresh" below.
+- **The data:** a GitHub Actions workflow in this repo (`.github/workflows/daily-refresh.yml`) runs `refresh.py` every day at 06:30 Hong Kong time, then validates and commits. Release dates and grosses stay manual (see "Updating data.json" above). Open pages pick up any change within the hour.
 
-### Scheduled data refresh
+### What the daily workflow changes
 
-A Claude Code cloud routine, **TMH daily data refresh**, runs every day at 6:00am Hong Kong time (manage it at https://claude.ai/code/routines/trig_01QdoLZ4GC969Zn1JbgyRXwB). Each run:
+`refresh.py` uses only official sources that need no API key, and changes only what it can match exactly:
 
-1. Fills in newly announced dates and corrects any that moved.
-2. Updates worldwide grosses (Box Office Mojo / The Numbers).
-3. Refreshes chart ranks from official charts only, and drops ranks older than 21 days.
-4. Adds notable new titles, with posters only when the TMDB match is certain.
-5. Retires stale entries: movies home for more than 120 days, and shows that premiered more than 75 days ago and have finished and stopped charting.
-6. Sets `updated` to that day.
+1. **Netflix chart ranks** come from Netflix's official Top 10 file (`all-weeks-global.tsv`, the global weekly TV lists, published on Tuesdays for the week ending Sunday). Newer data always wins: a rank you entered with a later `asOf` date is not replaced by an older Netflix week. A show that drops out of the official list has its rank cleared. Ranks record which chart they came from in `chartRank.chart`.
+2. **New Netflix hits:** shows that enter the official global weekly top 5 (English TV) and aren't already listed are added with `"source": "netflix-top10"`. Fields Netflix doesn't publish (premiere date, genre, pattern) are left `null`. These auto-added shows are removed 21 days after they were last in the chart (`lastCharted`). Shows you add by hand are never removed automatically.
+3. **Other services' ranks** (Prime Video etc.) are cleared once their `asOf` is more than 21 days old, since there is no official feed to refresh them from.
+4. **Missing posters** are filled from TMDB only when exactly one entry matches the exact title and type, plus the year (movies) or the network (shows), and the image loads.
+5. It sets `autoUpdated` to the day it ran. The page shows this as "charts checked …", while `updated` remains the date you last checked release dates by hand.
 
-It may only write values it has confirmed from an authoritative source (studio/streamer announcements or trade press quoting them). Anything it can't confirm stays as it is. It must pass `python3 sync-fallback.py` before committing to `main`.
+Every run writes a report to the workflow's summary page (Actions tab → Daily data refresh → a run). The report lists what changed and a **Needs a human** list: films in cinemas for over 45 days with no home dates, shows with no premiere date, missing posters, and release dates not hand-checked for over a week. Each commit (`Daily refresh YYYY-MM-DD: …`) lists every change with its source. Revert a commit to undo a day.
 
-Each commit (`Daily data refresh YYYY-MM-DD`) lists every change with its source URL, plus what it looked at but couldn't confirm. Read these now and then; revert a commit to undo a day. Retired titles also drop out of Interested and Watched, because those lists only show titles that are still in `data.json`.
+To run it now: Actions tab → **Daily data refresh** → **Run workflow**. Locally: `python3 refresh.py --dry-run` shows what it would change without writing anything.
 
-Editing `data.json` by hand still works alongside it: the routine pulls the latest `main` each run.
+GitHub pauses scheduled workflows in a public repo after 60 days without activity. The workflow commits every day (at least the `autoUpdated` date), which counts as activity, so this shouldn't happen. If it ever stops, re-enable it in the Actions tab.
 
 ## Sorting
 

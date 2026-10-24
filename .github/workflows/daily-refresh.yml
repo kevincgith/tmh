@@ -1,0 +1,45 @@
+# Daily data refresh: updates data.json from official, key-free sources (see refresh.py),
+# validates it, and commits to main. GitHub Pages then republishes the site.
+name: Daily data refresh
+
+on:
+  schedule:
+    - cron: "30 22 * * *" # 06:30 Hong Kong time (22:30 UTC)
+  workflow_dispatch: # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refresh data.json
+        run: python3 refresh.py --report report.md --commit-msg commit.txt
+
+      - name: Validate and update the inline fallback
+        run: python3 sync-fallback.py
+
+      - name: Report
+        if: always()
+        run: test -f report.md && cat report.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet -- data.json index.html; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data.json index.html
+          git commit -F commit.txt
+          git pull --rebase
+          git push

@@ -362,7 +362,7 @@
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to light mode" title="Toggle light/dark">☀︎</button>
     </div>
   </header>
-  <p class="meta-line">Updated <strong id="updated">—</strong><span id="fresh"></span> · All dates are US releases; Hong Kong availability may differ.</p>
+  <p class="meta-line">Updated <strong id="updated">—</strong><span id="fresh"></span><span id="auto"></span> · All dates are US releases; Hong Kong availability may differ.</p>
 
   <div class="controls" id="controls">
     <div class="row">
@@ -826,7 +826,8 @@
     return '<article class="card">' +
       '<div class="poster' + (cr ? " has-rank" : "") + (img ? " has-img" : "") + '" style="background:' + gradient(s.title) + '">' +
         img +
-        (cr ? '<span class="rank" title="As of ' + esc(fmtDate(cr.asOf, true)) + '">#' + cr.rank + " " + esc(cr.service) + "</span>" : "") +
+        (cr ? '<span class="rank" title="' + esc((cr.chart ? cr.chart + ", " : "") + "as of " + fmtDate(cr.asOf, true)) + '">#' +
+          cr.rank + " " + esc(cr.service) + "</span>" : "") +
         (info.isNew ? '<span class="ribbon">NEW</span>' : "") +
         "<h4>" + esc(s.title) + "</h4>" +
         '<div class="sub">' + esc(sub) + "</div>" +
@@ -837,7 +838,8 @@
         (facts.length ? '<div class="facts">' + facts.join("") + "</div>" : "") +
         (s.notes ? '<p class="notes">' + esc(s.notes) + "</p>" : "") +
         '<div class="foot">' + jwLink(s.title) +
-          (cr ? '<span class="small">chart as of ' + esc(fmtDate(cr.asOf)) + "</span>" : "") +
+          (cr ? '<span class="small">' + esc(cr.chart ? cr.chart.replace(/^Official /, "") : "chart") + " as of " +
+            esc(fmtDate(cr.asOf)) + "</span>" : "") +
         "</div>" +
       "</div></article>";
   }
@@ -1300,10 +1302,14 @@
     var d = daysBetween(DATA.updated, TODAY);
     el.textContent = d <= 0 ? " (today)" : d === 1 ? " (yesterday)" : " (" + d + " days ago)";
     el.className = d > 3 ? "stale" : "";
-    el.title = d > 3 ? "Listings haven't been refreshed for a few days, so some dates or chart ranks may be out of date." : "";
+    el.title = d > 3 ? "Release dates haven't been checked for a few days, so some may be out of date." : "";
+    // autoUpdated: when the repo's daily job last checked charts and posters (see refresh.py).
+    var au = document.getElementById("auto");
+    au.textContent = DATA.autoUpdated && ISO_RE.test(DATA.autoUpdated) && DATA.autoUpdated !== DATA.updated ?
+      " · charts checked " + fmtDate(DATA.autoUpdated) : "";
   }
   function applyData(data, raw) {
-    DATA = { updated: data.updated, movies: data.movies || [], shows: data.shows || [] };
+    DATA = { updated: data.updated, autoUpdated: data.autoUpdated, movies: data.movies || [], shows: data.shows || [] };
     rawData = raw || "";
     pendingRaw = null;
     showFreshness();
