@@ -1,5 +1,6 @@
 {
   "updated": "2026-10-23",
+  "autoUpdated": "2026-10-24",
   "movies": [
     { "title": "Spider-Man: Brand New Day", "year": 2026, "theatrical": "2026-07-31", "worldwideGross": 2480000000, "genre": "Superhero", "digital": "2026-10-06", "physical": "2026-12-15", "streaming": null, "notes": "Streaming date not announced.", "poster": "https://image.tmdb.org/t/p/w342/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg" },
     { "title": "The Odyssey", "year": 2026, "theatrical": "2026-07-17", "worldwideGross": 1740000000, "genre": "Epic / Adventure", "digital": "2026-11-17", "physical": "2026-11-17", "streaming": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg" },
@@ -49,6 +50,8 @@
     { "title": "Stick", "season": 2, "service": "Apple TV", "premiere": "2026-11-04", "finale": null, "pattern": null, "episodes": null, "genre": "Comedy", "chartRank": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/y8EWrf5Ry1WmYksWT7MOPWexvr5.jpg" },
     { "title": "The Rings of Power", "season": 3, "service": "Prime Video", "premiere": "2026-11-11", "finale": null, "pattern": null, "episodes": null, "genre": "Fantasy", "chartRank": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/bMXWXKM9ydUmMTNvDnYo9QtCBRt.jpg" },
     { "title": "Percy Jackson and the Olympians", "season": 3, "service": "Disney+", "premiere": "2026-11-20", "finale": null, "pattern": null, "episodes": null, "genre": "Fantasy / Adventure", "chartRank": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/bd5ZIqiz1PRiLC7FLexzVBf8qu1.jpg" },
-    { "title": "Blade Runner 2099", "season": null, "service": "Prime Video", "premiere": "2026-11-25", "finale": null, "pattern": null, "episodes": null, "genre": "Sci-fi", "chartRank": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/zgMUz8bScHMs3PSDNkDtJ0A0rLN.jpg" }
+    { "title": "Blade Runner 2099", "season": null, "service": "Prime Video", "premiere": "2026-11-25", "finale": null, "pattern": null, "episodes": null, "genre": "Sci-fi", "chartRank": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/zgMUz8bScHMs3PSDNkDtJ0A0rLN.jpg" },
+    { "title": "Instadocs: AI Gone Wild", "season": null, "service": "Netflix", "premiere": null, "finale": null, "pattern": null, "episodes": null, "genre": null, "chartRank": { "service": "Netflix", "rank": 3, "asOf": "2026-10-18", "chart": "Official global weekly · TV (English)" }, "notes": "Added automatically from Netflix's official Top 10.", "source": "netflix-top10", "lastCharted": "2026-10-18" },
+    { "title": "TYSON", "season": "Limited", "service": "Netflix", "premiere": null, "finale": null, "pattern": null, "episodes": null, "genre": null, "chartRank": { "service": "Netflix", "rank": 4, "asOf": "2026-10-18", "chart": "Official global weekly · TV (English)" }, "notes": "Added automatically from Netflix's official Top 10.", "source": "netflix-top10", "lastCharted": "2026-10-18", "poster": "https://image.tmdb.org/t/p/w342/mdtpJEWW1j5Ns7bIcbw1UeIdvhp.jpg" }
   ]
 }
