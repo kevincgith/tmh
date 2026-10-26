@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+    <text id="t" x="40" y="312" letter-spacing="10" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="150" font-weight="900" stroke-width="12" stroke-linejoin="round">TMH</text>
+    <!-- letters thickened with a round-jointed stroke, so every corner is soft -->
+    <mask id="glyphs"><use href="#t" fill="#fff" stroke="#fff"/></mask>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241634"/>
+      <stop offset="1" stop-color="#0a0c16"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".34" stop-color="#fff" stop-opacity=".5"/>
+      <stop offset=".6" stop-color="#fff" stop-opacity=".12"/>
+      <stop offset=".7" stop-color="#fff" stop-opacity=".2"/>
+    </linearGradient>
+    <radialGradient id="dot" cx=".35" cy=".3" r=".75">
+      <stop offset="0" stop-color="#fff3d6"/>
+      <stop offset=".35" stop-color="#ffc062"/>
+      <stop offset="1" stop-color="#e07a00"/>
+    </radialGradient>
+    <filter id="blobs" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="55"/></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
+    <!-- domed surface: light a blurred height map so edges curve away like a pillow -->
+    <filter id="dome" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="height"/>
+      <feSpecularLighting in="height" surfaceScale="10" specularConstant="1.1" specularExponent="22" lighting-color="#fff" result="spec">
+        <feDistantLight azimuth="235" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <!-- darker underside of the dome -->
+    <filter id="underside" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="b"/>
+      <feOffset in="b" dy="-9" result="o"/>
+      <feComposite in="SourceAlpha" in2="o" operator="out" result="edge"/>
+      <feFlood flood-color="#3a1030" flood-opacity=".45"/>
+      <feComposite in2="edge" operator="in"/>
+    </filter>
+    <!-- thin bright rim on the outline -->
+    <filter id="rim" x="-10%" y="-10%" width="120%" height="120%">
+      <feMorphology in="SourceAlpha" operator="erode" radius="2" result="in"/>
+      <feComposite in="SourceAlpha" in2="in" operator="out" result="ring"/>
+      <feFlood flood-color="#fff" flood-opacity=".6"/>
+      <feComposite in2="ring" operator="in"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <g filter="url(#blobs)">
+      <circle cx="140" cy="390" r="170" fill="#ffa63d"/>
+      <circle cx="400" cy="130" r="150" fill="#ff4f8b"/>
+      <circle cx="430" cy="450" r="130" fill="#5b6cff"/>
+    </g>
+
+    <!-- shadow under the glass letters -->
+    <use href="#t" fill="#000" stroke="#000" opacity=".45" transform="translate(0 16)" filter="url(#soft)"/>
+
+    <!-- glass letters: brighter, refracted copy of the backdrop -->
+    <g mask="url(#glyphs)">
+      <g filter="url(#blobs)">
+        <circle cx="160" cy="360" r="170" fill="#ffc062"/>
+        <circle cx="390" cy="160" r="150" fill="#ff7aa6"/>
+        <circle cx="410" cy="430" r="130" fill="#8291ff"/>
+      </g>
+      <rect width="512" height="512" fill="url(#glass)"/>
+    </g>
+    <use href="#t" fill="#fff" stroke="#fff" filter="url(#underside)"/>
+    <use href="#t" fill="#fff" stroke="#fff" filter="url(#dome)" opacity=".85"/>
+    <use href="#t" fill="#fff" stroke="#fff" filter="url(#rim)"/>
+
+    <!-- amber dot, as in the "TMH." wordmark -->
+    <circle cx="442" cy="298" r="22" fill="#000" opacity=".4" transform="translate(0 8)" filter="url(#glow)"/>
+    <circle cx="442" cy="290" r="22" fill="url(#dot)"/>
+    <ellipse cx="435" cy="281" rx="9" ry="6" fill="#fff" opacity=".7"/>
+  </g>
+</svg>
