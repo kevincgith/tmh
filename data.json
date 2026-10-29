@@ -1,6 +1,6 @@
 {
   "updated": "2026-10-23",
-  "autoUpdated": "2026-10-28",
+  "autoUpdated": "2026-10-29",
   "movies": [
     { "title": "Spider-Man: Brand New Day", "year": 2026, "theatrical": "2026-07-31", "worldwideGross": 2480000000, "genre": "Superhero", "digital": "2026-10-06", "physical": "2026-12-15", "streaming": null, "notes": "Streaming date not announced.", "poster": "https://image.tmdb.org/t/p/w342/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg" },
     { "title": "The Odyssey", "year": 2026, "theatrical": "2026-07-17", "worldwideGross": 1740000000, "genre": "Epic / Adventure", "digital": "2026-11-17", "physical": "2026-11-17", "streaming": null, "notes": "", "poster": "https://image.tmdb.org/t/p/w342/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg" },
