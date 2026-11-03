@@ -31,6 +31,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = pathlib.Path(__file__).resolve().parent
 NETFLIX_TSV = "https://www.netflix.com/tudum/top10/data/all-weeks-global.tsv"
+NETFLIX_PAGES = ["https://www.netflix.com/tudum/top10/tv", "https://www.netflix.com/tudum/top10/tv-non-english"]
 UA = "Mozilla/5.0 (compatible; TMH-refresh; +https://github.com/kevincgith/tmh)"
 STALE_DAYS = 21
 AUTO_ADD_TOP = 5
@@ -110,16 +111,92 @@ def season_compatible(ours, theirs):
     return ours == theirs
 
 
-def netflix_week():
-    rows = list(csv.DictReader(io.StringIO(fetch(NETFLIX_TSV).decode("utf-8")), delimiter="\t"))
-    tv = [r for r in rows if r["category"].startswith("TV")]
-    latest = max(r["week"] for r in tv)
-    return latest, [r for r in tv if r["week"] == latest]
+def js_unescape(s):
+    """Decode the escapes of a single-quoted JavaScript string literal."""
+    simple = {"n": "\n", "r": "\r", "t": "\t", "b": "\b", "f": "\f", "v": "\v", "0": "\0"}
+
+    def sub(m):
+        e = m.group(1)
+        if e[0] in "xu":
+            return chr(int(e[1:], 16))
+        return simple.get(e, e)
+    return re.sub(r"\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|.)", sub, s, flags=re.S)
 
 
-def apply_netflix(data, log, attention):
-    latest, week = netflix_week()
+def netflix_page_data(page):
+    """Netflix embeds the page's data as netflix.reactContext.models.graphql = JSON.parse('...')."""
+    m = re.search(r"models\.graphql\s*=\s*JSON\.parse\('((?:[^'\\]|\\.)*)'\)", page, re.S)
+    if not m:
+        raise ValueError("embedded page data not found")
+    return json.loads(js_unescape(m.group(1)))["data"]
+
+
+def netflix_page_rows(url):
+    """Rows (same shape as the TSV) plus single-season premiere dates from a Netflix Top 10 web page.
+
+    Netflix publishes the weekly lists on these pages before the downloadable TSV catches up.
+    """
+    data = netflix_page_data(fetch(url).decode("utf-8"))
+    labels = {"ENGLISH_SERIES": "TV (English)", "NONENGLISH_SERIES": "TV (Non-English)"}
+    rows, premieres = [], {}
+    for key, obj in data.items():
+        if not key.startswith("PulseTop10ItemEntity:") or not isinstance(obj, dict):
+            continue
+        t10, vid = obj.get("top10") or {}, obj.get("top10Video") or {}
+        if t10.get("category") not in labels:
+            continue
+        show = ((vid.get("parentShow") or {}).get("title") or vid.get("title") or "").strip()
+        rows.append({"week": t10["weekEndDate"], "category": labels[t10["category"]], "weekly_rank": str(t10["weeklyRank"]),
+                     "show_title": show, "season_title": vid.get("title") or ""})
+        # Series availability start = premiere only when the show has a single season.
+        parent = ((obj.get("displayVideo") or {}).get("video") or {}).get("parentShow") or {}
+        start = parent.get("availabilityStartTime")
+        if start and (parent.get("seasons") or {}).get("totalCount") == 1:
+            utc = dt.datetime.fromisoformat(start.replace("Z", "+00:00"))
+            premieres[norm(show)] = utc.astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat()
+    return rows, premieres
+
+
+def netflix_week(log, errors):
+    """The newest official week across the TSV and the Top 10 pages, and single-season premiere dates."""
+    rows, premieres, sources = [], {}, {}
+    try:
+        tsv = [r for r in csv.DictReader(io.StringIO(fetch(NETFLIX_TSV).decode("utf-8")), delimiter="\t")
+               if r["category"].startswith("TV")]
+        rows += tsv
+        sources[NETFLIX_TSV] = max(r["week"] for r in tsv)
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"Netflix TSV unavailable: {e}")
+    for url in NETFLIX_PAGES:
+        try:
+            page_rows, page_premieres = netflix_page_rows(url)
+            rows += page_rows
+            premieres.update(page_premieres)
+            if page_rows:
+                sources[url] = max(r["week"] for r in page_rows)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"Netflix page unavailable ({url}): {e}")
+    if not rows:
+        raise RuntimeError("no Netflix Top 10 source could be read")
+    latest = max(r["week"] for r in rows)
+    week, seen = [], set()
+    for r in rows:  # the same entry can come from both the TSV and a page
+        k = (r["category"], r["weekly_rank"])
+        if r["week"] == latest and k not in seen:
+            seen.add(k)
+            week.append(r)
+    for src, wk in sources.items():
+        log.append(f"Netflix source {src}: latest week ending {wk}.")
+    return latest, week, premieres, [s for s, wk in sources.items() if wk == latest]
+
+
+def apply_netflix(data, today, log, attention, errors):
+    latest, week, premieres, srcs = netflix_week(log, errors)
+    source = " / ".join(srcs)
     log.append(f"Netflix official Top 10: latest week ending {latest} ({len(week)} TV entries).")
+    # Netflix publishes on Tuesdays for the week ending the previous Sunday, so data over 9 days old means a stall.
+    if (today - days(latest)).days > 9:
+        attention.append(f"Netflix's newest published week ends {latest}, over 9 days ago. Check whether the Top 10 sources moved.")
     shows = data["shows"]
     matched = set()
     for s in shows:
@@ -128,6 +205,10 @@ def apply_netflix(data, log, attention):
         hit = next((r for r in week if norm(r["show_title"]) == norm(s["title"])
                     and season_compatible(s.get("season"), season_of(r["season_title"]))), None)
         cur = s.get("chartRank")
+        prem = premieres.get(norm(s["title"]))
+        if prem and not s.get("premiere") and s.get("season") in (None, 1, "Limited"):
+            s["premiere"] = prem
+            log.append(f"{s['title']}: premiere {prem} (Netflix availability start, US Pacific date). Source: {source}")
         if hit:
             matched.add(id(hit))
             new = {"service": "Netflix", "rank": int(hit["weekly_rank"]), "asOf": latest,
@@ -140,7 +221,7 @@ def apply_netflix(data, log, attention):
                 old = f"#{cur['rank']} as of {cur['asOf']}" if cur else "none"
                 s["chartRank"] = new
                 log.append(f"{s['title']}: Netflix rank {old} -> #{new['rank']} ({hit['category']}, week ending {latest}). "
-                           f"Source: {NETFLIX_TSV}")
+                           f"Source: {source}")
         elif cur and cur.get("service") == "Netflix" and cur.get("asOf", "") < latest:
             s["chartRank"] = None
             log.append(f"{s['title']}: left Netflix's official Top 10 (week ending {latest}); rank cleared.")
@@ -154,7 +235,7 @@ def apply_netflix(data, log, attention):
             continue  # same title on another service, or a different season: leave for a human
         show = {
             "title": r["show_title"], "season": season_of(r["season_title"]), "service": "Netflix",
-            "premiere": None, "finale": None, "pattern": None, "episodes": None, "genre": None,
+            "premiere": premieres.get(norm(r["show_title"])), "finale": None, "pattern": None, "episodes": None, "genre": None,
             "chartRank": {"service": "Netflix", "rank": int(r["weekly_rank"]), "asOf": latest,
                           "chart": "Official global weekly · " + r["category"]},
             "notes": "Added automatically from Netflix's official Top 10.",
@@ -163,8 +244,9 @@ def apply_netflix(data, log, attention):
         shows.append(show)
         existing.add(norm(r["show_title"]))
         log.append(f"Added {r['show_title']} (#{r['weekly_rank']} Netflix TV (English), week ending {latest}). "
-                   f"Source: {NETFLIX_TSV}")
-        attention.append(f"{r['show_title']}: added from the Netflix chart; premiere date, genre and pattern unknown.")
+                   f"Source: {source}")
+        attention.append(f"{r['show_title']}: added from the Netflix chart; genre and pattern unknown"
+                         + ("." if show["premiere"] else ", premiere date unknown."))
 
     # Retire auto-added shows that have been off the chart for 3 weeks.
     keep = []
@@ -268,7 +350,7 @@ def main():
     log, attention, errors = [], [], []
 
     try:
-        apply_netflix(data, log, attention)
+        apply_netflix(data, today, log, attention, errors)
     except Exception as e:  # noqa: BLE001 - a failed source must not block the other steps
         errors.append(f"Netflix Top 10 step failed: {e}")
     clear_stale_ranks(data, today, log)
@@ -280,7 +362,7 @@ def main():
     ordered = {"updated": data.get("updated"), "autoUpdated": today.isoformat()}
     ordered.update({k: v for k, v in data.items() if k not in ordered})
 
-    changes = [l for l in log if not l.startswith(("Netflix official Top 10:", "TMDB lookup skipped"))]
+    changes = [l for l in log if not l.startswith(("Netflix official Top 10:", "Netflix source ", "TMDB lookup skipped"))]
     report = [f"# TMH daily refresh {today.isoformat()}", "",
               "## Changes", *(f"- {c}" for c in changes or ["No listing changes."]), "",
               "## Notes", *(f"- {l}" for l in log if l not in changes), *(f"- ⚠️ {e}" for e in errors), "",
