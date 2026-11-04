@@ -7,9 +7,12 @@ Uses only official, key-free sources, and only changes what it can match exactly
   2. Netflix shows entering the official global weekly Top 5 (TV, English) are added with
      "source": "netflix-top10"; they are retired 21 days after they last charted.
   3. Chart ranks from other services are cleared once they are more than 21 days old.
-  4. Missing posters are filled from TMDB when exactly one entry matches the title, the type,
+  4. Box Office Mojo: worldwide grosses for films released in the last 180 days (a drop of more than 5%
+     is flagged, not applied), and films in the latest weekend's domestic top 5 are added with
+     "source": "boxofficemojo".
+  5. Missing posters are filled from TMDB when exactly one entry matches the title, the type,
      and the movie's year or the show's network.
-Release dates and grosses are never touched; those stay manual.
+Home-release dates and non-Netflix premieres are never touched; those stay manual.
 
 It sets "autoUpdated" to today's Hong Kong date, writes a Markdown report and a commit message.
 
@@ -33,8 +36,10 @@ ROOT = pathlib.Path(__file__).resolve().parent
 NETFLIX_TSV = "https://www.netflix.com/tudum/top10/data/all-weeks-global.tsv"
 NETFLIX_PAGES = ["https://www.netflix.com/tudum/top10/tv", "https://www.netflix.com/tudum/top10/tv-non-english"]
 UA = "Mozilla/5.0 (compatible; TMH-refresh; +https://github.com/kevincgith/tmh)"
+BOM = "https://www.boxofficemojo.com"
 STALE_DAYS = 21
 AUTO_ADD_TOP = 5
+BOM_ADD_TOP = 5
 # TMDB network names accepted for each service when matching a show's poster.
 NETWORKS = {
     "Netflix": {"Netflix"},
@@ -267,6 +272,105 @@ def clear_stale_ranks(data, today, log):
             log.append(f"{s['title']}: {cr['service']} rank #{cr['rank']} as of {cr['asOf']} is over {STALE_DAYS} days old; cleared.")
 
 
+# ---------- Box Office Mojo grosses and new films ----------
+def bom_page(path):
+    return re.sub(r"\s+", " ", fetch(BOM + path).decode("utf-8"))
+
+
+def bom_money(s):
+    return int(s.replace("$", "").replace(",", ""))
+
+
+def bom_title(tt):
+    """Title, year, US release date, worldwide gross and genres from a Box Office Mojo title page."""
+    page = bom_page(f"/title/{tt}/")
+    h1 = re.search(r'<h1 class="a-size-extra-large">([^<]+)<span[^>]*>\s*\((\d{4})\)</span></h1>', page)
+    i = page.find("mojo-performance-summary-table")
+    ww = re.search(r">\s*Worldwide\s*</span>\s*<br/>\s*<span[^>]*>\s*<span class=\"money\">(\$[\d,]+)</span>", page[i:i + 4000]) if i >= 0 else None
+    rel = re.search(r'>Domestic</a></td><td>(\w{3} \w{3} \d{1,2}, \d{4})</td>', page)
+    gen = re.search(r"<span>Genres</span>\s*<span>([^<]+)</span>", page)
+    if not (h1 and ww):
+        raise RuntimeError(f"unexpected page layout for {tt}")
+    return {
+        "title": html.unescape(h1.group(1)).strip(), "year": int(h1.group(2)), "gross": bom_money(ww.group(1)),
+        "release": dt.datetime.strptime(rel.group(1), "%a %b %d, %Y").date().isoformat() if rel else None,
+        "genres": [g.strip() for g in html.unescape(gen.group(1)).split("·") if g.strip()] if gen else [],
+    }
+
+
+def bom_find(title, year):
+    """The single Box Office Mojo title id whose title and year match exactly, else None."""
+    page = bom_page("/search/?q=" + urllib.parse.quote(title))
+    hits = {tt for tt, t, y in re.findall(r'href="/title/(tt\d+)/[^"]*"[^>]*>([^<]+)</a>\s*(?:<span[^>]*>)?\s*\((\d{4})\)', page)
+            if norm(html.unescape(t)) == norm(title) and int(y) == year}
+    return hits.pop() if len(hits) == 1 else None
+
+
+def apply_bom(data, today, log, attention, errors):
+    movies = data["movies"]
+    # 1. Grosses for films released in the last 180 days (older totals are effectively final).
+    for m in movies:
+        if not m.get("theatrical") or (today - days(m["theatrical"])).days > 180:
+            continue
+        try:
+            if not m.get("bomId"):
+                tt = bom_find(m["title"], m.get("year"))
+                if not tt:
+                    attention.append(f"{m['title']}: no exact Box Office Mojo match on title and year; gross not updated. "
+                                     "If you find it, add its id as \"bomId\" in data.json.")
+                    continue
+                m["bomId"] = tt
+            info = bom_title(m["bomId"])
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"Box Office Mojo lookup failed for {m['title']}: {e}")
+            continue
+        # Same film if title and year match, or if Box Office Mojo's US release date equals ours
+        # (covers listings like "Star Wars: The Mandalorian and Grogu" or a festival-year 2025).
+        same = (norm(info["title"]) == norm(m["title"]) and info["year"] == m.get("year")) or info["release"] == m["theatrical"]
+        if not same:
+            attention.append(f"{m['title']}: Box Office Mojo {m['bomId']} is '{info['title']} ({info['year']})'; not updated.")
+            continue
+        old, new = m.get("worldwideGross"), info["gross"]
+        if old and new < old * 0.95:
+            attention.append(f"{m['title']}: Box Office Mojo shows ${new:,} worldwide, more than 5% below the stored ${old:,}; check by hand.")
+        elif new != old:
+            m["worldwideGross"] = new
+            log.append(f"{m['title']}: worldwideGross {old if old is not None else 'none'} -> {new}. "
+                       f"Source: {BOM}/title/{m['bomId']}/")
+
+    # 2. New films from the latest weekend's domestic top N.
+    weekends = bom_page("/weekend/")
+    latest = next((p for p, row in re.findall(r'href="(/weekend/\d{4}W\d+/)[^"]*"[^>]*>[^<]*</a>(.*?)</tr>', weekends)
+                   if "$" in row), None)
+    if not latest:
+        raise RuntimeError("no weekend with grosses on Box Office Mojo")
+    chart = bom_page(latest)
+    releases = re.findall(r'<tr>.*?href="(/release/rl\d+/)[^"]*"[^>]*>([^<]+)</a>', chart)[:BOM_ADD_TOP]
+    log.append(f"Box Office Mojo weekend chart {BOM}{latest}: top {len(releases)} checked.")
+    known_ids = {m.get("bomId") for m in movies}
+    known_titles = {norm(m["title"]) for m in movies}
+    for path, name in releases:
+        if norm(html.unescape(name)) in known_titles:
+            continue
+        try:
+            tt = re.search(r'href="/title/(tt\d+)/', bom_page(path)).group(1)
+            if tt in known_ids:
+                continue
+            info = bom_title(tt)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"Box Office Mojo lookup failed for {html.unescape(name)}: {e}")
+            continue
+        if not info["release"] or norm(info["title"]) in known_titles:
+            continue
+        movie = {"title": info["title"], "year": info["year"], "theatrical": info["release"], "worldwideGross": info["gross"],
+                 "genre": " / ".join(info["genres"][:2]) or None, "digital": None, "physical": None, "streaming": None,
+                 "notes": "Added automatically from Box Office Mojo's weekend chart.", "bomId": tt, "source": "boxofficemojo"}
+        movies.append(movie)
+        known_titles.add(norm(info["title"]))
+        log.append(f"Added {info['title']} ({info['year']}): US release {info['release']}, ${info['gross']:,} worldwide. "
+                   f"Source: {BOM}/title/{tt}/")
+
+
 # ---------- TMDB posters ----------
 def tmdb_search(kind, title):
     page = fetch(f"https://www.themoviedb.org/search/{kind}?query={urllib.parse.quote(title)}").decode("utf-8")
@@ -354,6 +458,10 @@ def main():
     except Exception as e:  # noqa: BLE001 - a failed source must not block the other steps
         errors.append(f"Netflix Top 10 step failed: {e}")
     clear_stale_ranks(data, today, log)
+    try:
+        apply_bom(data, today, log, attention, errors)
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"Box Office Mojo step failed: {e}")
     if not args.no_tmdb:
         fill_posters(data, log, attention)
     review(data, today, attention)
@@ -362,7 +470,7 @@ def main():
     ordered = {"updated": data.get("updated"), "autoUpdated": today.isoformat()}
     ordered.update({k: v for k, v in data.items() if k not in ordered})
 
-    changes = [l for l in log if not l.startswith(("Netflix official Top 10:", "Netflix source ", "TMDB lookup skipped"))]
+    changes = [l for l in log if not l.startswith(("Netflix official Top 10:", "Netflix source ", "Box Office Mojo weekend chart", "TMDB lookup skipped"))]
     report = [f"# TMH daily refresh {today.isoformat()}", "",
               "## Changes", *(f"- {c}" for c in changes or ["No listing changes."]), "",
               "## Notes", *(f"- {l}" for l in log if l not in changes), *(f"- ⚠️ {e}" for e in errors), "",

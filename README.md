@@ -107,17 +107,24 @@ When no search or filter is active (or only My services), a featured title sits 
 ## Daily refresh
 
 - **In the page:** statuses are worked out from today's date. An open page re-renders by itself when the local day rolls over. It also re-checks `data.json` hourly and whenever you switch back to the tab, then shows a "New listings loaded" notice if anything changed. The header shows how old the data is; after 3 days it turns amber.
-- **The data:** a GitHub Actions workflow in this repo (`.github/workflows/daily-refresh.yml`) runs `refresh.py` every day at 06:30 Hong Kong time, then validates and commits. Release dates and grosses stay manual (see "Updating data.json" above). Open pages pick up any change within the hour.
+- **The data:** a GitHub Actions workflow in this repo (`.github/workflows/daily-refresh.yml`) runs `refresh.py` every day (scheduled for 06:30 Hong Kong time; GitHub often starts it a few hours later), then validates and commits. Home-release dates (digital, streaming, 4K/Blu-ray) and premieres outside Netflix stay manual (see "Updating data.json" above), because no free source publishes them in a form a script can read safely. Open pages pick up any change within the hour.
 
 ### What the daily workflow changes
 
 `refresh.py` uses only official sources that need no API key, and changes only what it can match exactly:
 
-1. **Netflix chart ranks** come from Netflix's official Top 10 file (`all-weeks-global.tsv`, the global weekly TV lists, published on Tuesdays for the week ending Sunday). Newer data always wins: a rank you entered with a later `asOf` date is not replaced by an older Netflix week. A show that drops out of the official list has its rank cleared. Ranks record which chart they came from in `chartRank.chart`.
+1. **Netflix chart ranks** come from Netflix's official Top 10: the English and non-English TV pages on netflix.com/tudum/top10 and the downloadable `all-weeks-global.tsv`, whichever has the newer week (the file sometimes lags the pages by weeks). Lists are published on Tuesdays for the week ending Sunday; if the newest week is more than 9 days old, the run report flags it. Single-season shows also get their premiere date from Netflix's availability start. Newer data always wins: a rank you entered with a later `asOf` date is not replaced by an older Netflix week. A show that drops out of the official list has its rank cleared. Ranks record which chart they came from in `chartRank.chart`.
 2. **New Netflix hits:** shows that enter the official global weekly top 5 (English TV) and aren't already listed are added with `"source": "netflix-top10"`. Fields Netflix doesn't publish (premiere date, genre, pattern) are left `null`. These auto-added shows are removed 21 days after they were last in the chart (`lastCharted`). Shows you add by hand are never removed automatically.
 3. **Other services' ranks** (Prime Video etc.) are cleared once their `asOf` is more than 21 days old, since there is no official feed to refresh them from.
-4. **Missing posters** are filled from TMDB only when exactly one entry matches the exact title and type, plus the year (movies) or the network (shows), and the image loads.
-5. It sets `autoUpdated` to the day it ran. The page shows this as "charts checked …", while `updated` remains the date you last checked release dates by hand.
+4. **Box-office grosses and new films** come from Box Office Mojo.
+   - `worldwideGross` is refreshed daily for films released in the last 180 days.
+   - Each film is linked to its Box Office Mojo page by `bomId` (the `tt…` id in its URL). The id is found automatically on an exact title and year match, then kept.
+   - A stored id is only trusted while that page's US release date or exact title and year still match the film.
+   - A gross that drops more than 5% is flagged, not applied.
+   - Films in the latest weekend's domestic top 5 that aren't listed yet are added with `"source": "boxofficemojo"`, their US release date, gross and genre.
+   - If a film can't be matched, add its `bomId` by hand.
+5. **Missing posters** are filled from TMDB only when exactly one entry matches the exact title and type, plus the year (movies) or the network (shows), and the image loads.
+6. It sets `autoUpdated` to the day it ran. The page shows this as "charts checked …", while `updated` remains the date you last checked release dates by hand.
 
 Every run writes a report to the workflow's summary page (Actions tab → Daily data refresh → a run). The report lists what changed and a **Needs a human** list: films in cinemas for over 45 days with no home dates, shows with no premiere date, missing posters, and release dates not hand-checked for over a week. Each commit (`Daily refresh YYYY-MM-DD: …`) lists every change with its source. Revert a commit to undo a day.
 

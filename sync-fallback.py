@@ -39,6 +39,10 @@ def check(data):
         g = m.get("worldwideGross")
         if g is not None and not isinstance(g, (int, float)):
             problems.append(f"{t}.worldwideGross: must be a number or null")
+        if m.get("bomId") is not None and not re.match(r"^tt\d+$", str(m["bomId"])):
+            problems.append(f"{t}.bomId: must look like tt1234567")
+        if m.get("source") not in (None, "boxofficemojo"):
+            problems.append(f"{t}.source: unknown value {m.get('source')!r}")
         for s in [m.get("streaming")] + (m.get("alsoStreaming") or []):
             if s is not None:
                 service(f"{t}.streaming", s.get("service"))
